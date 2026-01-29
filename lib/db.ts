@@ -6,14 +6,22 @@ import * as schema from "../db/schema";
 const url = process.env.TURSO_DATABASE_URL;
 const authToken = process.env.TURSO_AUTH_TOKEN;
 
-if (!url) {
-  console.error("ERROR FATAL: TURSO_DATABASE_URL tidak ditemukan di Environment Variables.");
-}
+// Fungsi helper untuk membuat client yang aman
+const createSafeClient = () => {
+  if (!url) {
+    console.warn("PERINGATAN: TURSO_DATABASE_URL tidak ditemukan. Menggunakan Mock Client agar tidak crash.");
+    // Return dummy client yang tidak akan crash saat di-import, tapi akan error saat query
+    return createClient({
+      url: "file:local.db", // Fallback aman yang tidak request network
+    });
+  }
 
-// Gunakan fallback agar build tidak crash, tapi berikan error saat query dijalankan jika URL invalid
-const client = createClient({
-  url: url || "libsql://db-placeholder.turso.io", 
-  authToken: authToken,
-});
+  return createClient({
+    url,
+    authToken,
+  });
+};
+
+const client = createSafeClient();
 
 export const db = drizzle(client, { schema });

@@ -41,19 +41,20 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         role
       });
       
-      if (result && result.success) {
-        // SUKSES: Reload halaman browser secara manual agar state user di-refresh bersih
-        window.location.reload();
+      if (result && result.success && result.user) {
+        // SUKSES: Jangan reload halaman! Langsung update state di parent.
+        // Ini mencegah error "Server Component Render" karena koneksi ulang.
+        onComplete(result.user);
       } else {
-        setError('Gagal mendaftar. Silakan coba lagi.');
+        throw new Error('Gagal mendapatkan respon sukses dari server.');
       }
     } catch (err: any) {
       console.error("Registration Error:", err);
-      // Tampilkan pesan error yang lebih ramah
-      if (err.message.includes("TURSO_DATABASE_URL")) {
-         setError("Sistem Database belum dikonfigurasi oleh Admin (Environment Variables Missing).");
+      // Pesan error yang lebih membantu
+      if (err.message && err.message.includes("TURSO")) {
+         setError("Koneksi Database bermasalah. Hubungi Admin.");
       } else {
-         setError(err.message || 'Terjadi kesalahan sistem saat mendaftar.');
+         setError(err.message || 'Terjadi kesalahan sistem. Coba lagi.');
       }
     } finally {
       setLoading(false);

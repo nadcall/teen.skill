@@ -44,13 +44,20 @@ export async function checkTaskSafetyAction(title: string, description: string) 
 
 // --- Internal Helper: Setup Tables Automatically ---
 async function ensureTablesExist() {
+  if (!process.env.TURSO_DATABASE_URL) {
+     console.error("SKIP: Cannot ensure tables, no DATABASE URL.");
+     return;
+  }
+
   try {
     // Cek koneksi dulu dengan query ringan
     try {
        await db.run(sql`SELECT 1`);
     } catch (connError) {
-       console.error("Database connection failed:", connError);
-       throw new Error("Koneksi Database Gagal. Cek Environment Variables di Vercel.");
+       console.error("Database connection failed during check:", connError);
+       // Jika ini gagal, biasanya create table di bawah juga gagal. 
+       // Kita throw agar action pemanggil tau ada masalah DB.
+       throw new Error("Koneksi Database Gagal. Cek konfigurasi.");
     }
 
     // Create Users Table
@@ -115,10 +122,12 @@ export async function syncUser() {
         await ensureTablesExist();
         return null; // Return null agar user diarahkan ke Onboarding
       }
+      console.error("Query Error in syncUser:", queryError);
       throw queryError;
     }
   } catch (error: any) {
-    console.error("Sync User Error:", error);
+    // Silent fail agar frontend tidak crash dengan "Digest error"
+    console.error("Sync User Error (Handled):", error);
     return null; 
   }
 }
@@ -126,6 +135,10 @@ export async function syncUser() {
 export async function registerUserAction(formData: any) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized: Tidak ada sesi login.");
+
+  if (!process.env.TURSO_DATABASE_URL) {
+     throw new Error("Database URL belum disetting (TURSO_DATABASE_URL missing).");
+  }
 
   try {
     // Pastikan tabel ada sebelum insert
@@ -146,8 +159,7 @@ export async function registerUserAction(formData: any) {
     // Insert ke Database
     await db.insert(users).values(newUser);
     
-    // PENTING: Jangan gunakan revalidatePath('/') di sini jika menyebabkan error render di Vercel.
-    // Kita return success flag, biar Client yang reload page.
+    // PENTING: Return objek user agar frontend bisa langsung update state
     return { success: true, user: newUser };
 
   } catch (error: any) {
@@ -177,6 +189,7 @@ export async function createTaskAction(title: string, description: string, budge
 
 export async function getOpenTasksAction() {
   try {
+    if (!process.env.TURSO_DATABASE_URL) return [];
     await ensureTablesExist(); 
     return await db.select().from(tasks).where(eq(tasks.status, 'open')).orderBy(desc(tasks.createdAt));
   } catch (e) {
@@ -187,6 +200,8 @@ export async function getOpenTasksAction() {
 
 export async function getMyTasksAction(userId: string, role: string) {
   try {
+    if (!process.env.TURSO_DATABASE_URL) return [];
+    
     if (role === 'client') {
       return await db.select().from(tasks).where(eq(tasks.clientId, userId)).orderBy(desc(tasks.createdAt));
     } else {
