@@ -6,12 +6,16 @@ import { Onboarding } from './components/Onboarding';
 import { ClientDashboard } from './app/dashboard/ClientDashboard';
 import { FreelancerDashboard } from './app/dashboard/FreelancerDashboard';
 import { Button } from './components/Button';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, Sun, Moon } from 'lucide-react';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { BackgroundWrapper } from './components/BackgroundWrapper';
 
-const App: React.FC = () => {
+// Inner component to access ThemeContext
+const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const init = async () => {
@@ -36,65 +40,78 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-12 w-12 bg-indigo-200 rounded-full mb-4"></div>
-          <div className="h-4 w-32 bg-gray-200 rounded"></div>
-        </div>
+        <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
-  // Not logged in and not onboarding -> Landing
-  if (!user && !showOnboarding) {
-    return <LandingPage onStart={handleStart} />;
-  }
-
-  // Onboarding flow
-  if (!user && showOnboarding) {
-    return <Onboarding onComplete={(newUser) => setUser(newUser)} />;
-  }
-
-  // Authenticated State - Dashboard Layout
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <nav className="bg-white border-b sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 cursor-pointer">
-              TeenSkill
-            </span>
-            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full uppercase font-bold tracking-wider">
-              {user?.role}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end mr-2">
-              <span className="text-sm font-medium text-gray-900">{user?.name}</span>
-              <span className="text-xs text-gray-500">@{user?.username}</span>
+    <BackgroundWrapper>
+      <div className="min-h-screen flex flex-col font-sans">
+        <nav className="bg-white/70 dark:bg-gray-900/70 border-b border-white/20 dark:border-gray-800 sticky top-0 z-30 backdrop-blur-lg transition-colors duration-300">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <span 
+                onClick={() => { setUser(null); setShowOnboarding(false); }}
+                className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 cursor-pointer tracking-tight"
+              >
+                TeenSkill
+              </span>
+              {user && (
+                <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[10px] rounded-full uppercase font-bold tracking-widest border border-gray-200 dark:border-gray-700">
+                  {user.role}
+                </span>
+              )}
             </div>
-            <div className="h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold">
-               {user?.name.charAt(0)}
-            </div>
-            <Button variant="ghost" onClick={handleLogout} className="text-red-500 hover:bg-red-50">
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </nav>
+            
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={toggleTheme}
+                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-yellow-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Toggle Theme"
+              >
+                {theme === 'light' ? <Moon className="w-5 h-5 text-indigo-600" /> : <Sun className="w-5 h-5" />}
+              </button>
 
-      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        {user?.role === 'client' ? (
-          <ClientDashboard user={user} />
-        ) : user?.role === 'freelancer' ? (
-          <FreelancerDashboard user={user} />
-        ) : (
-          <div className="text-center py-20 text-gray-500">
-            Dasbor orang tua belum diimplementasikan dalam demo ini.
+              {user && (
+                <>
+                  <div className="hidden md:flex flex-col items-end mr-2">
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">{user.name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</span>
+                  </div>
+                  <div className="h-9 w-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                     {user.name.charAt(0)}
+                  </div>
+                  <Button variant="ghost" onClick={handleLogout} className="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-2">
+                    <LogOut className="w-5 h-5" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        )}
-      </main>
-    </div>
+        </nav>
+
+        <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          {!user && !showOnboarding && <LandingPage onStart={handleStart} />}
+          {!user && showOnboarding && <Onboarding onComplete={(newUser) => setUser(newUser)} />}
+          {user?.role === 'client' && <ClientDashboard user={user} />}
+          {user?.role === 'freelancer' && <FreelancerDashboard user={user} />}
+          {user && user.role === 'parent' && (
+             <div className="text-center py-20 text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-2xl">
+              Dasbor orang tua belum diimplementasikan dalam demo ini.
+            </div>
+          )}
+        </main>
+      </div>
+    </BackgroundWrapper>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
   );
 };
 
