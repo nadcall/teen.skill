@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/db';
+import { db, dbStatus } from '@/lib/db';
 import { users, tasks } from '@/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
@@ -9,7 +9,6 @@ import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Helper: Safe AI Initialization ---
-// Jangan inisialisasi di top-level untuk mencegah crash saat build jika API Key hilang
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) return null;
@@ -25,23 +24,32 @@ export async function checkSystemHealthAction() {
     message: ""
   };
 
-  // 1. Cek Environment Variables
-  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  // 1. Cek Apakah Config DB Loaded (Dari lib/db.ts)
+  if (dbStatus.isConfigured) {
     status.env = true;
   } else {
-    status.message = "Environment Variable (Database URL) hilang.";
-    return status;
+    status.message = `Konfigurasi DB Error: ${dbStatus.error || "URL Missing"}`;
+    // Jangan return dulu, biarkan cek koneksi berjalan untuk memastikan
   }
 
-  // 2. Cek Koneksi Database (Ping)
+  // 2. Cek Koneksi Database Real (Ping)
   try {
-    // Jalankan query ringan 'SELECT 1'
+    // Jalankan query ringan
     await db.run(sql`SELECT 1`);
-    status.database = true;
+    
+    // Jika kita dalam mode fallback (in-memory), SELECT 1 akan sukses, 
+    // tapi itu bukan koneksi Turso yang asli.
+    if (dbStatus.isConfigured) {
+       status.database = true;
+    } else {
+       // Env error, tapi query sukses (berarti connect ke :memory:)
+       status.database = false; 
+    }
   } catch (error: any) {
     console.error("Health Check DB Failed:", error);
-    status.message = `Koneksi Database Gagal: ${error.message}`;
-    return status; // Stop jika DB mati
+    status.database = false;
+    status.message = status.message || `Koneksi Database Gagal: ${error.message}`;
+    return status; 
   }
 
   // 3. Cek AI (Optional)
@@ -50,11 +58,13 @@ export async function checkSystemHealthAction() {
   }
 
   // 4. Jika Database OK, Pastikan Tabel Ada (Auto-Migration)
-  try {
-     await initializeSystemAction();
-  } catch (e) {
-     console.error("Table Init Warning:", e);
-     // Lanjut saja, mungkin tabel sudah ada
+  if (status.database) {
+    try {
+       await initializeSystemAction();
+    } catch (e) {
+       console.error("Table Init Warning:", e);
+       // Lanjut saja
+    }
   }
 
   return status;
@@ -92,8 +102,8 @@ export async function checkTaskSafetyAction(title: string, description: string) 
 
 // --- SYSTEM INITIALIZATION ---
 export async function initializeSystemAction() {
-  if (!process.env.TURSO_DATABASE_URL) {
-    return { success: false, message: "Database URL not configured" };
+  if (!dbStatus.isConfigured) {
+    return { success: false, message: "Menggunakan In-Memory DB (Data tidak tersimpan)" };
   }
 
   try {
@@ -144,7 +154,6 @@ export async function syncUser() {
     const { userId } = await auth();
     if (!userId) return null;
 
-    // Gunakan try-catch query spesifik agar tidak crash render
     try {
       const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
       return dbUser || null;
@@ -161,6 +170,11 @@ export async function syncUser() {
 export async function registerUserAction(formData: any) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized: Tidak ada sesi login.");
+
+  // Validasi manual sebelum insert
+  if (!dbStatus.isConfigured) {
+     throw new Error("Database belum terkoneksi. Cek konfigurasi server.");
+  }
 
   try {
     const newUser = {
