@@ -37,30 +37,20 @@ export async function checkTaskSafetyAction(title: string, description: string) 
     return JSON.parse(text);
   } catch (e) {
     console.error("AI Check Error:", e);
-    // Fail safe: izinkan tapi log error, atau tolak demi keamanan
     return { safe: true, reason: "AI Service Unavailable (Auto-Approved)" };
   }
 }
 
-// --- Internal Helper: Setup Tables Automatically ---
-async function ensureTablesExist() {
+// --- SYSTEM INITIALIZATION (PENTING: Dijalankan saat Splash Screen) ---
+export async function initializeSystemAction() {
+  console.log("🚀 System Initialization Started...");
+  
   if (!process.env.TURSO_DATABASE_URL) {
-     console.error("SKIP: Cannot ensure tables, no DATABASE URL.");
-     return;
+    return { success: false, message: "Database URL not configured" };
   }
 
   try {
-    // Cek koneksi dulu dengan query ringan
-    try {
-       await db.run(sql`SELECT 1`);
-    } catch (connError) {
-       console.error("Database connection failed during check:", connError);
-       // Jika ini gagal, biasanya create table di bawah juga gagal. 
-       // Kita throw agar action pemanggil tau ada masalah DB.
-       throw new Error("Koneksi Database Gagal. Cek konfigurasi.");
-    }
-
-    // Create Users Table
+    // 1. Cek Koneksi & Buat Tabel Users
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -76,7 +66,7 @@ async function ensureTablesExist() {
       );
     `);
 
-    // Create Tasks Table
+    // 2. Buat Tabel Tasks
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -92,10 +82,12 @@ async function ensureTablesExist() {
         FOREIGN KEY (freelancer_id) REFERENCES users(id)
       );
     `);
-    console.log("Database tables verified/created successfully.");
+
+    console.log("✅ System Initialization Complete: Tables Ready.");
+    return { success: true, message: "System Ready" };
   } catch (error: any) {
-    console.error("Failed to auto-create tables:", error);
-    // Jangan throw error di sini agar aplikasi tidak crash total, biarkan action lain yang handle
+    console.error("❌ System Init Failed:", error);
+    return { success: false, message: error.message };
   }
 }
 
@@ -106,28 +98,13 @@ export async function syncUser() {
     const { userId } = await auth();
     if (!userId) return null;
 
-    if (!process.env.TURSO_DATABASE_URL) {
-      console.error("Missing TURSO_DATABASE_URL");
-      return null;
-    }
-
-    // 1. Coba ambil user
-    try {
-      const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
-      return dbUser || null;
-    } catch (queryError: any) {
-      // 2. Jika error karena tabel tidak ada, buat tabelnya
-      if (queryError.message && (queryError.message.includes("no such table") || queryError.message.includes("Prepare failed"))) {
-        console.log("Tables missing. Creating tables...");
-        await ensureTablesExist();
-        return null; // Return null agar user diarahkan ke Onboarding
-      }
-      console.error("Query Error in syncUser:", queryError);
-      throw queryError;
-    }
+    // Karena initializeSystemAction sudah dijalankan di awal, 
+    // kita bisa langsung query tanpa try-catch berlebihan untuk create table.
+    const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
+    return dbUser || null;
+    
   } catch (error: any) {
-    // Silent fail agar frontend tidak crash dengan "Digest error"
-    console.error("Sync User Error (Handled):", error);
+    console.error("Sync User Error:", error);
     return null; 
   }
 }
@@ -136,14 +113,7 @@ export async function registerUserAction(formData: any) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized: Tidak ada sesi login.");
 
-  if (!process.env.TURSO_DATABASE_URL) {
-     throw new Error("Database URL belum disetting (TURSO_DATABASE_URL missing).");
-  }
-
   try {
-    // Pastikan tabel ada sebelum insert
-    await ensureTablesExist();
-
     const newUser = {
       id: uuidv4(),
       clerkId: userId,
@@ -156,16 +126,12 @@ export async function registerUserAction(formData: any) {
       taskQuotaDaily: 1,
     };
 
-    // Insert ke Database
     await db.insert(users).values(newUser);
-    
-    // PENTING: Return objek user agar frontend bisa langsung update state
     return { success: true, user: newUser };
 
   } catch (error: any) {
-    console.error("Register Error Detailed:", error);
-    // Return error message yang bisa dibaca user
-    throw new Error(error.message || "Gagal mendaftarkan user ke database.");
+    console.error("Register Error:", error);
+    throw new Error(error.message || "Gagal mendaftar.");
   }
 }
 
@@ -183,32 +149,25 @@ export async function createTaskAction(title: string, description: string, budge
     clientId: user.id,
     status: 'open'
   });
-  // Return simple success object
   return { success: true };
 }
 
 export async function getOpenTasksAction() {
   try {
-    if (!process.env.TURSO_DATABASE_URL) return [];
-    await ensureTablesExist(); 
     return await db.select().from(tasks).where(eq(tasks.status, 'open')).orderBy(desc(tasks.createdAt));
   } catch (e) {
-    console.error("Get Open Tasks Error:", e);
     return [];
   }
 }
 
 export async function getMyTasksAction(userId: string, role: string) {
   try {
-    if (!process.env.TURSO_DATABASE_URL) return [];
-    
     if (role === 'client') {
       return await db.select().from(tasks).where(eq(tasks.clientId, userId)).orderBy(desc(tasks.createdAt));
     } else {
       return await db.select().from(tasks).where(eq(tasks.freelancerId, userId)).orderBy(desc(tasks.createdAt));
     }
   } catch (e) {
-    console.error("Get My Tasks Error:", e);
     return [];
   }
 }
