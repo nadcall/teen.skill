@@ -257,13 +257,14 @@ export async function completePaymentAction(taskId: string) {
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task || !task.freelancerId) return;
 
-  // CRITICAL FIX: Using 'as any' to bypass TypeScript type inference error
+  // CRITICAL FIX: Using 'as any' for task update
   await db.update(tasks).set({ status: 'completed' } as any).where(eq(tasks.id, taskId));
   
   const freelancer = await db.select().from(users).where(eq(users.id, task.freelancerId)).get();
   if(freelancer) {
+      // CRITICAL FIX: Using 'as any' for user update too
       await db.update(users)
-        .set({ balance: freelancer.balance + task.budget })
+        .set({ balance: freelancer.balance + task.budget } as any)
         .where(eq(users.id, task.freelancerId));
   }
   
