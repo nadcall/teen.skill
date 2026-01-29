@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { User, Task } from '../../types';
-import { getAllOpenTasks, getMyTasks, takeTask } from '../../services/db';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
-import { Modal } from '../../components/Modal';
+import { getOpenTasksAction, getMyTasksAction, takeTaskAction } from '@/app/actions';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Modal } from '@/components/Modal';
 import { Briefcase, Lock, Search } from 'lucide-react';
 
 interface FreelancerDashboardProps {
-  user: User;
+  user: any;
 }
 
 export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }) => {
   const [view, setView] = useState<'market' | 'my-tasks'>('market');
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [parentalCodeInput, setParentalCodeInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,10 +20,10 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
   const fetchTasks = async () => {
     setLoading(true);
     if (view === 'market') {
-      const data = await getAllOpenTasks();
+      const data = await getOpenTasksAction();
       setTasks(data);
     } else {
-      const data = await getMyTasks(user.id, 'freelancer');
+      const data = await getMyTasksAction(user.id, 'freelancer');
       setTasks(data);
     }
     setLoading(false);
@@ -42,11 +41,10 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
     setLoading(true);
 
     try {
-      await takeTask(user, selectedTask.id, parentalCodeInput);
+      await takeTaskAction(selectedTask.id, parentalCodeInput);
       setSelectedTask(null);
       setParentalCodeInput('');
       fetchTasks();
-      // Optional: switch to my tasks or show success toast
       setView('my-tasks');
     } catch (err: any) {
       setError(err.message);
@@ -94,7 +92,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
                     <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 px-3 py-1 rounded-lg">
                       <Briefcase className="w-4 h-4 text-indigo-500" /> Harga Tetap
                     </span>
-                    <span className="flex items-center px-3 py-1">Diposting {new Date(task.created_at).toLocaleDateString()}</span>
+                    <span className="flex items-center px-3 py-1">Diposting {new Date(task.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-3 min-w-[120px]">
@@ -126,7 +124,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
             Untuk melanjutkan, masukkan Kode Orang Tua. Ini memastikan orang tua Anda menyetujui aktivitas ini.
           </p>
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl text-sm text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/50 font-medium">
-            Kuota Harian: Anda dapat mengambil maksimal {user.task_quota_daily} tugas per hari.
+            Kuota Harian: Anda dapat mengambil maksimal {user.taskQuotaDaily} tugas per hari.
           </div>
         </div>
 

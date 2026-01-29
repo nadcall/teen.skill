@@ -1,29 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { User, Task } from '../../types';
-import { createTask, getMyTasks, completeTaskPayment } from '../../services/db';
-import { checkTaskSafety } from '../../services/geminiService';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
-import { Modal } from '../../components/Modal';
-import { XenditPaymentModal } from '../../components/XenditPaymentModal';
+import { createTaskAction, getMyTasksAction, completePaymentAction, checkTaskSafetyAction } from '@/app/actions';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Modal } from '@/components/Modal';
+import { XenditPaymentModal } from '@/components/XenditPaymentModal';
 import { Plus, List, AlertTriangle, CheckCircle, Wallet } from 'lucide-react';
 
 interface ClientDashboardProps {
-  user: User;
+  user: any;
 }
 
 export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
   const [safetyError, setSafetyError] = useState<string | null>(null);
 
   // State for Payment
-  const [paymentTask, setPaymentTask] = useState<Task | null>(null);
+  const [paymentTask, setPaymentTask] = useState<any | null>(null);
 
   const fetchTasks = async () => {
-    const myTasks = await getMyTasks(user.id, 'client');
+    const myTasks = await getMyTasksAction(user.id, 'client');
     setTasks(myTasks);
   };
 
@@ -37,8 +35,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     setIsLoading(true);
     setSafetyError(null);
 
-    // 1. AI Safety Check
-    const safetyCheck = await checkTaskSafety(newTask.title, newTask.description);
+    // 1. AI Safety Check (Server Action)
+    const safetyCheck = await checkTaskSafetyAction(newTask.title, newTask.description);
     
     if (!safetyCheck.safe) {
       setSafetyError(`Peringatan Keamanan: ${safetyCheck.reason}`);
@@ -47,7 +45,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     }
 
     try {
-      await createTask(user, newTask.title, newTask.description, Number(newTask.budget));
+      await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
       setIsModalOpen(false);
       setNewTask({ title: '', description: '', budget: '' });
       fetchTasks();
@@ -60,7 +58,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
   const handlePaymentSuccess = async () => {
     if (paymentTask) {
-      await completeTaskPayment(paymentTask.id);
+      await completePaymentAction(paymentTask.id);
       fetchTasks();
       setPaymentTask(null);
     }
@@ -97,7 +95,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                     {task.status.toUpperCase()}
                   </span>
                   <span className="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-                    Diposting: {new Date(task.created_at).toLocaleDateString()}
+                    Diposting: {new Date(task.createdAt).toLocaleDateString()}
                   </span>
                 </div>
               </div>

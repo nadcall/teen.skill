@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { User, Role } from '../types';
-import { registerUser } from '../services/db';
+import { User, Role } from '../types'; // Adjust imports as needed
+import { registerUserAction } from '@/app/actions'; // Use Server Action
 import { Button } from './Button';
 import { Input } from './Input';
 import { Briefcase, User as UserIcon } from 'lucide-react';
 
 interface OnboardingProps {
-  onComplete: (user: User) => void;
+  onComplete: (user: any) => void;
 }
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
@@ -35,14 +35,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setError('');
 
     try {
-      const ageNum = parseInt(formData.age);
-      const user = await registerUser(
-        formData.name,
-        formData.username,
-        role,
-        isNaN(ageNum) ? 0 : ageNum,
-        formData.parentalCode
-      );
+      // Call Server Action
+      const user = await registerUserAction({
+        ...formData,
+        role
+      });
       onComplete(user);
     } catch (err: any) {
       setError(err.message || 'Registrasi gagal');

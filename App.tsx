@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from './types';
 import { getCurrentUser, logout } from './services/db';
-import { LandingPage } from './app/page';
+import { LandingPage } from './components/LandingPage';
 import { Onboarding } from './components/Onboarding';
 import { Login } from './components/Login';
 import { ClientDashboard } from './app/dashboard/ClientDashboard';
