@@ -31,6 +31,16 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
+  // Helper untuk format Rupiah
+  const formatRupiah = (number: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(number);
+  };
+
   const handlePostTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -100,12 +110,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                     {task.status.toUpperCase()}
                   </span>
                   <span className="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-                    Diposting: {new Date(task.createdAt).toLocaleDateString()}
+                    Diposting: {new Date(task.createdAt).toLocaleDateString('id-ID')}
                   </span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 text-left sm:text-right w-full sm:w-auto">
-                <span className="block text-3xl font-bold text-indigo-600 dark:text-indigo-400">${task.budget}</span>
+                <span className="block text-3xl font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                  {formatRupiah(task.budget)}
+                </span>
                 <span className="text-gray-400 text-sm font-medium mb-2">Anggaran</span>
                 
                 {/* Action Button for Payment */}
@@ -134,7 +146,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         <form onSubmit={handlePostTask} className="space-y-5">
           <Input 
             label="Judul Tugas" 
-            placeholder="misal: Desain Logo" 
+            placeholder="misal: Desain Logo untuk UMKM" 
             value={newTask.title} 
             onChange={e => setNewTask({...newTask, title: e.target.value})} 
             required
@@ -143,19 +155,20 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Deskripsi</label>
             <textarea 
               className="w-full px-4 py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none h-32 transition-all"
-              placeholder="Jelaskan detail pekerjaan..."
+              placeholder="Jelaskan detail pekerjaan yang dibutuhkan..."
               value={newTask.description}
               onChange={e => setNewTask({...newTask, description: e.target.value})}
               required
             />
           </div>
           <Input 
-            label="Anggaran ($)" 
+            label="Anggaran (Rupiah)" 
             type="number" 
-            placeholder="50" 
+            placeholder="Contoh: 50000" 
             value={newTask.budget} 
             onChange={e => setNewTask({...newTask, budget: e.target.value})} 
             required
+            min="10000"
           />
 
           {aiError && (

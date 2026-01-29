@@ -35,6 +35,16 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
+  // Helper untuk format Rupiah
+  const formatRupiah = (number: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(number);
+  };
+
   const handleTakeTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTask) return;
@@ -48,11 +58,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
       setSelectedTask(null);
       setParentalCodeInput('');
       setView('my-tasks');
-      // Fetch dilakukan otomatis karena dependency view berubah, 
-      // tapi karena kita baru set view, kita panggil fetch untuk my-tasks nanti.
-      // Namun untuk amannya kita reload window saja jika perlu, atau fetch ulang manual.
-      // Di sini kita biarkan useEffect view yang mengurusnya.
-      
+      // Fetch dilakukan otomatis karena dependency view berubah
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -72,7 +78,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
             </h1>
           </div>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
-            Saldo Dompetmu: <span className="text-indigo-600 dark:text-indigo-400 font-bold text-lg">${user.balance}</span>
+            Saldo Dompetmu: <span className="text-indigo-600 dark:text-indigo-400 font-bold text-lg">{formatRupiah(user.balance)}</span>
           </p>
         </div>
         
@@ -130,7 +136,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
                       <Briefcase className="w-3.5 h-3.5" /> ID: {task.id.substring(0,6)}
                     </span>
                     <span className="inline-flex items-center px-3 py-1 text-xs text-gray-500 dark:text-gray-400">
-                      📅 {new Date(task.createdAt).toLocaleDateString()}
+                      📅 {new Date(task.createdAt).toLocaleDateString('id-ID')}
                     </span>
                   </div>
                 </div>
@@ -138,7 +144,9 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
                 <div className="flex flex-col items-end gap-3 min-w-[140px]">
                   <div className="text-right">
                     <span className="block text-xs text-gray-400 font-bold uppercase tracking-wider">Honor</span>
-                    <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">${task.budget}</span>
+                    <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                      {formatRupiah(task.budget)}
+                    </span>
                   </div>
                   
                   {view === 'market' && (
@@ -171,7 +179,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
         <div className="mb-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
           <h4 className="font-bold text-gray-900 dark:text-white mb-2">{selectedTask?.title}</h4>
           <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
-            Kamu akan mengerjakan tugas ini dengan honor <strong>${selectedTask?.budget}</strong>.
+            Kamu akan mengerjakan tugas ini dengan honor <strong>{selectedTask && formatRupiah(selectedTask.budget)}</strong>.
             Pastikan orang tuamu mengetahui aktivitas ini ya!
           </p>
           <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-2 rounded-lg">
