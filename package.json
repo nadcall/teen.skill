@@ -7,33 +7,35 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:push": "drizzle-kit push:sqlite"
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.9",
-    "@google/genai": "^0.1.0",
-    "@libsql/client": "^0.5.6",
+    "@clerk/nextjs": "^5.0.1",
+    "@google/genai": "^0.1.1",
+    "@libsql/client": "^0.6.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "drizzle-orm": "^0.30.7",
-    "framer-motion": "^11.0.24",
-    "lucide-react": "^0.363.0",
-    "next": "14.1.4",
-    "react": "^18",
-    "react-dom": "^18",
-    "tailwind-merge": "^2.2.2",
-    "tailwindcss-animate": "^1.0.7"
+    "drizzle-orm": "^0.30.10",
+    "framer-motion": "^11.1.7",
+    "lucide-react": "^0.372.0",
+    "next": "14.2.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
-    "drizzle-kit": "^0.20.14",
-    "eslint": "^8",
-    "eslint-config-next": "14.1.4",
-    "postcss": "^8",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5"
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^9.0.8",
+    "autoprefixer": "^10.4.19",
+    "drizzle-kit": "^0.21.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5"
   }
 }

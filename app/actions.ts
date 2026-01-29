@@ -9,6 +9,7 @@ import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Gemini AI ---
+// Initialize GoogleGenAI with API key from environment variables
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export async function checkTaskSafetyAction(title: string, description: string) {
