@@ -1,15 +1,17 @@
 export type Role = 'freelancer' | 'client' | 'parent';
 
+// Mengikuti struktur Drizzle Schema (CamelCase)
 export interface User {
   id: string;
-  clerk_id: string; // Simulated Clerk ID
+  clerkId: string; 
   role: Role;
   name: string;
   username: string;
   age?: number;
-  parental_code?: string; // Only for freelancers
+  parentalCode?: string;
   balance: number;
-  task_quota_daily: number;
+  taskQuotaDaily: number;
+  createdAt?: string;
 }
 
 export type TaskStatus = 'open' | 'taken' | 'submitted' | 'completed';
@@ -20,14 +22,8 @@ export interface Task {
   description: string;
   budget: number;
   status: TaskStatus;
-  client_id: string;
-  freelancer_id?: string;
-  created_at: string; // ISO date string
-  taken_at?: string;
-}
-
-// Simulated Session Context
-export interface Session {
-  user: User | null;
-  isAuthenticated: boolean;
+  clientId: string;
+  freelancerId?: string;
+  createdAt: string;
+  takenAt?: string;
 }

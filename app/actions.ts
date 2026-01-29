@@ -37,7 +37,7 @@ export async function checkTaskSafetyAction(title: string, description: string) 
 // --- User Actions ---
 
 export async function syncUser() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return null;
 
   const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
@@ -45,7 +45,7 @@ export async function syncUser() {
 }
 
 export async function registerUserAction(formData: any) {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
   const newUser = {
