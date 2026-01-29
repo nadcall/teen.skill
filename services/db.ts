@@ -23,7 +23,6 @@ export const saveUser = (user: User) => {
     users.push(user);
   }
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  localStorage.setItem(CURRENT_USER_KEY, user.id);
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
@@ -38,6 +37,32 @@ export const logout = () => {
   localStorage.removeItem(CURRENT_USER_KEY);
 };
 
+export const loginUser = async (username: string, role: Role, parentalCode?: string): Promise<User> => {
+  await delay(600);
+  const users = getUsers();
+  
+  // Find user by username AND role to prevent confusion
+  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.role === role);
+
+  if (!user) {
+    throw new Error("Pengguna tidak ditemukan. Silakan daftar terlebih dahulu.");
+  }
+
+  // CRITICAL: Parental Code Check for Freelancers (Students)
+  if (role === 'freelancer') {
+    if (!parentalCode) {
+      throw new Error("Kode Orang Tua wajib diisi untuk login siswa.");
+    }
+    if (user.parental_code !== parentalCode) {
+      throw new Error("Kode Orang Tua salah! Akses ditolak.");
+    }
+  }
+
+  // Set session
+  localStorage.setItem(CURRENT_USER_KEY, user.id);
+  return user;
+};
+
 export const registerUser = async (
   name: string,
   username: string,
@@ -45,15 +70,20 @@ export const registerUser = async (
   age: number,
   parental_code?: string
 ): Promise<User> => {
-  await delay(500);
+  await delay(800);
   
-  // Validation Logic from requirements
+  const users = getUsers();
+  if (users.some(u => u.username === username)) {
+    throw new Error("Username sudah digunakan.");
+  }
+
+  // Validation Logic
   if (role === 'freelancer') {
     if (age < 13 || age > 17) {
-      throw new Error("Freelancer harus berusia antara 13 dan 17 tahun.");
+      throw new Error("Siswa harus berusia antara 13 dan 17 tahun.");
     }
     if (!parental_code) {
-      throw new Error("Kode persetujuan orang tua diperlukan untuk freelancer.");
+      throw new Error("Kode persetujuan orang tua diperlukan untuk pendaftaran siswa.");
     }
   }
 
@@ -64,12 +94,13 @@ export const registerUser = async (
     username,
     role,
     age,
-    parental_code,
+    parental_code, // Stored for login verification later
     balance: 0,
-    task_quota_daily: 1, // Default from schema
+    task_quota_daily: 1, 
   };
 
   saveUser(newUser);
+  localStorage.setItem(CURRENT_USER_KEY, newUser.id);
   return newUser;
 };
 
@@ -112,17 +143,16 @@ export const createTask = async (client: User, title: string, description: strin
 export const takeTask = async (freelancer: User, taskId: string, parentalCodeInput: string): Promise<Task> => {
   await delay(600);
   
-  if (freelancer.role !== 'freelancer') throw new Error("Hanya freelancer yang dapat mengambil tugas.");
+  if (freelancer.role !== 'freelancer') throw new Error("Hanya siswa yang dapat mengambil tugas.");
 
-  // 1. Verify Parental Code
+  // Double Check Parental Code (Safety Layer 2)
   if (freelancer.parental_code !== parentalCodeInput) {
-    throw new Error("Kode Orang Tua tidak valid. Izin ditolak.");
+    throw new Error("Kode Orang Tua tidak valid. Izin mengambil tugas ditolak.");
   }
 
-  // 2. Check Task Quota (Daily)
+  // Check Quota
   const tasks = getTasks();
   const today = new Date().toISOString().split('T')[0];
-  
   const tasksTakenToday = tasks.filter(t => 
     t.freelancer_id === freelancer.id && 
     t.taken_at && 
@@ -130,14 +160,14 @@ export const takeTask = async (freelancer: User, taskId: string, parentalCodeInp
   ).length;
 
   if (tasksTakenToday >= freelancer.task_quota_daily) {
-    throw new Error(`Kuota harian tercapai. Anda hanya dapat mengambil ${freelancer.task_quota_daily} tugas per hari.`);
+    throw new Error(`Kuota harian tercapai. Batas: ${freelancer.task_quota_daily} tugas/hari.`);
   }
 
   const taskIndex = tasks.findIndex(t => t.id === taskId);
   if (taskIndex === -1) throw new Error("Tugas tidak ditemukan");
   
   const task = tasks[taskIndex];
-  if (task.status !== 'open') throw new Error("Tugas tidak lagi tersedia.");
+  if (task.status !== 'open') throw new Error("Tugas sudah diambil orang lain.");
 
   const updatedTask: Task = {
     ...task,
@@ -147,6 +177,37 @@ export const takeTask = async (freelancer: User, taskId: string, parentalCodeInp
   };
 
   saveTask(updatedTask);
+  return updatedTask;
+};
+
+export const completeTaskPayment = async (taskId: string): Promise<Task> => {
+  await delay(1500);
+
+  const tasks = getTasks();
+  const taskIndex = tasks.findIndex(t => t.id === taskId);
+  if (taskIndex === -1) throw new Error("Tugas tidak ditemukan");
+
+  const task = tasks[taskIndex];
+
+  const updatedTask: Task = {
+    ...task,
+    status: 'completed'
+  };
+  saveTask(updatedTask);
+
+  if (task.freelancer_id) {
+    const users = getUsers();
+    const freelancerIndex = users.findIndex(u => u.id === task.freelancer_id);
+    if (freelancerIndex >= 0) {
+      const freelancer = users[freelancerIndex];
+      const updatedFreelancer = {
+        ...freelancer,
+        balance: freelancer.balance + task.budget
+      };
+      saveUser(updatedFreelancer);
+    }
+  }
+
   return updatedTask;
 };
 

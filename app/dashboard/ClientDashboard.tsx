@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { User, Task } from '../../types';
-import { createTask, getMyTasks } from '../../services/db';
+import { createTask, getMyTasks, completeTaskPayment } from '../../services/db';
 import { checkTaskSafety } from '../../services/geminiService';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
-import { Plus, List, AlertTriangle } from 'lucide-react';
+import { XenditPaymentModal } from '../../components/XenditPaymentModal';
+import { Plus, List, AlertTriangle, CheckCircle, Wallet } from 'lucide-react';
 
 interface ClientDashboardProps {
   user: User;
@@ -17,6 +18,9 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
   const [safetyError, setSafetyError] = useState<string | null>(null);
+
+  // State for Payment
+  const [paymentTask, setPaymentTask] = useState<Task | null>(null);
 
   const fetchTasks = async () => {
     const myTasks = await getMyTasks(user.id, 'client');
@@ -54,6 +58,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     }
   };
 
+  const handlePaymentSuccess = async () => {
+    if (paymentTask) {
+      await completeTaskPayment(paymentTask.id);
+      fetchTasks();
+      setPaymentTask(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
@@ -75,10 +87,12 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
               <div className="flex-1">
                 <h3 className="font-bold text-xl text-gray-900 dark:text-white">{task.title}</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-xl leading-relaxed">{task.description}</p>
-                <div className="flex gap-3 mt-4 text-xs font-bold tracking-wide">
+                <div className="flex gap-3 mt-4 text-xs font-bold tracking-wide items-center">
                   <span className={`px-3 py-1 rounded-full border ${
                     task.status === 'open' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800' :
-                    task.status === 'taken' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                    task.status === 'taken' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' : 
+                    task.status === 'completed' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' :
+                    'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
                   }`}>
                     {task.status.toUpperCase()}
                   </span>
@@ -87,15 +101,32 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                   </span>
                 </div>
               </div>
-              <div className="text-left sm:text-right">
+              <div className="flex flex-col items-end gap-2 text-left sm:text-right w-full sm:w-auto">
                 <span className="block text-3xl font-bold text-indigo-600 dark:text-indigo-400">${task.budget}</span>
-                <span className="text-gray-400 text-sm font-medium">Anggaran</span>
+                <span className="text-gray-400 text-sm font-medium mb-2">Anggaran</span>
+                
+                {/* Action Button for Payment */}
+                {(task.status === 'taken' || task.status === 'submitted') && (
+                  <Button 
+                    onClick={() => setPaymentTask(task)}
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-sm py-2"
+                  >
+                    <Wallet className="w-4 h-4" /> Bayar & Selesaikan
+                  </Button>
+                )}
+
+                {task.status === 'completed' && (
+                   <div className="flex items-center gap-1 text-green-600 dark:text-green-400 font-bold text-sm">
+                     <CheckCircle className="w-4 h-4" /> Lunas
+                   </div>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
 
+      {/* Task Creation Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Buat Tugas Baru">
         <form onSubmit={handlePostTask} className="space-y-5">
           <Input 
@@ -140,6 +171,17 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
           </div>
         </form>
       </Modal>
+
+      {/* Xendit Payment Modal */}
+      {paymentTask && (
+        <XenditPaymentModal 
+          isOpen={!!paymentTask}
+          onClose={() => setPaymentTask(null)}
+          amount={paymentTask.budget}
+          taskTitle={paymentTask.title}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 };

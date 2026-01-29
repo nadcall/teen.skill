@@ -13,13 +13,20 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props 
 }) => {
-  const baseStyles = "px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm";
+  const baseStyles = "px-6 py-3 rounded-2xl font-bold text-sm tracking-wide transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm backdrop-blur-sm";
   
   const variants = {
-    primary: "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/30",
-    secondary: "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700",
-    danger: "bg-red-500 hover:bg-red-600 text-white shadow-red-500/30",
-    ghost: "bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800",
+    // Gradient Pastel Blue to Purple
+    primary: "bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-600 hover:to-indigo-600 text-white shadow-sky-200 dark:shadow-none border border-transparent",
+    
+    // Glassmorphism White
+    secondary: "bg-white/70 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 border border-white/50 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 hover:shadow-md",
+    
+    // Soft Red
+    danger: "bg-red-400 hover:bg-red-500 text-white shadow-red-200 dark:shadow-none",
+    
+    // Transparent
+    ghost: "bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/50",
   };
 
   return (

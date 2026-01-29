@@ -1,79 +1,100 @@
 import React from 'react';
-import { Shield, Coins, Rocket, Briefcase, CheckCircle } from 'lucide-react';
+import { Shield, Coins, Rocket, Briefcase, CheckCircle, ArrowRight, UserCheck } from 'lucide-react';
 import { Button } from '../components/Button';
 
 interface LandingProps {
-  onStart: () => void;
+  onRegister: () => void;
+  onLogin: () => void;
 }
 
-export const LandingPage: React.FC<LandingProps> = ({ onStart }) => {
+export const LandingPage: React.FC<LandingProps> = ({ onRegister, onLogin }) => {
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
-      {/* Hero */}
-      <main className="flex-grow">
-        <section className="py-24 px-4 text-center animate-fade-in-up">
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight leading-tight">
-            Platform Freelance Aman <br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
-              Untuk Remaja
-            </span>
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-10 font-medium">
-            Pelajari keterampilan dunia nyata, hasilkan uang dengan aman, dan bangun masa depanmu.
-            Disetujui orang tua, aman, dan dirancang khusus untuk remaja 13-17 tahun.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button onClick={onStart} className="px-8 py-3 text-lg h-auto shadow-lg shadow-indigo-500/20">Gabung Sekarang</Button>
-            <Button onClick={onStart} variant="secondary" className="px-8 py-3 text-lg h-auto shadow-lg">Pasang Lowongan</Button>
-          </div>
-        </section>
+    <div className="flex flex-col min-h-[calc(100vh-6rem)]">
+      {/* Hero Section */}
+      <main className="flex-grow flex flex-col items-center justify-center text-center px-4 animate-fade-in-up">
+        
+        {/* Badge */}
+        <div className="mb-6 px-4 py-1.5 rounded-full bg-white/60 dark:bg-slate-800/60 border border-white/50 dark:border-slate-700 backdrop-blur-md text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 shadow-sm flex items-center gap-2">
+          <Rocket className="w-3 h-3" /> Platform Freelance #1 Untuk Siswa
+        </div>
 
-        <section className="py-16 max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8">
-          {[
-            { icon: Shield, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', title: 'Keamanan Utama', desc: 'Setiap tugas diperiksa oleh AI demi keamanan. Kontrol orang tua memastikan remaja hanya mengambil pekerjaan yang aman.' },
-            { icon: Coins, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', title: 'Hasilkan & Belajar', desc: 'Bangun portofolio sejak dini. Dapatkan bayaran untuk desain grafis, coding, menulis, dan banyak lagi.' },
-            { icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-100 dark:bg-purple-900/30', title: 'Klien Terverifikasi', desc: 'Klien diverifikasi. Pembayaran ditahan di rekening bersama (escrow) sampai pekerjaan selesai.' }
-          ].map((feature, idx) => (
-            <div key={idx} className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-md p-8 rounded-2xl shadow-sm border border-white/20 dark:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300">
-              <div className={`w-14 h-14 ${feature.bg} rounded-xl flex items-center justify-center mb-6`}>
-                <feature.icon className={`w-7 h-7 ${feature.color}`} />
+        <h1 className="text-5xl md:text-7xl font-extrabold text-slate-800 dark:text-white mb-6 tracking-tight leading-[1.1]">
+          Belajar Mandiri, <br/>
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500">
+            Hasilkan Prestasi
+          </span>
+        </h1>
+        
+        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+          Hubungkan siswa berbakat dengan klien terpercaya. 
+          Aman dengan <span className="text-indigo-600 dark:text-indigo-400 font-bold">Kontrol Orang Tua</span>.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center">
+          <Button onClick={onRegister} className="w-full sm:w-auto px-10 py-4 text-lg shadow-xl shadow-sky-500/20 transform hover:scale-105 transition-transform">
+            Daftar Baru <ArrowRight className="w-5 h-5 ml-1" />
+          </Button>
+          <Button onClick={onLogin} variant="secondary" className="w-full sm:w-auto px-10 py-4 text-lg border-2 border-white/50">
+            <UserCheck className="w-5 h-5 mr-2" /> Sudah Punya Akun?
+          </Button>
+        </div>
+
+        {/* Roles Explanation */}
+        <div className="mt-16 grid md:grid-cols-2 gap-6 max-w-4xl w-full">
+           <div className="bg-white/50 dark:bg-slate-800/50 p-6 rounded-3xl border border-white/60 dark:border-slate-700 text-left backdrop-blur-sm hover:bg-white/80 transition-colors">
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-2xl flex items-center justify-center mb-4 text-indigo-600">
+                <Briefcase className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">{feature.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{feature.desc}</p>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Untuk Klien (Pemberi Kerja)</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Posting tugas, bantu siswa belajar skill dunia nyata, dan bayar dengan aman.</p>
+           </div>
+           <div className="bg-white/50 dark:bg-slate-800/50 p-6 rounded-3xl border border-white/60 dark:border-slate-700 text-left backdrop-blur-sm hover:bg-white/80 transition-colors">
+              <div className="w-12 h-12 bg-sky-100 dark:bg-sky-900/50 rounded-2xl flex items-center justify-center mb-4 text-sky-600">
+                <Rocket className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Untuk Siswa (Freelancer)</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Kerjakan tugas sesuai skill, kumpulkan portofolio, dan dapatkan uang saku. Wajib izin ortu.</p>
+           </div>
+        </div>
+
+        {/* Features Grid */}
+        <section className="mt-16 w-full max-w-6xl grid md:grid-cols-3 gap-6 text-left">
+          {[
+            { 
+              icon: Shield, 
+              color: 'text-sky-600', 
+              bg: 'bg-sky-50 dark:bg-sky-900/20', 
+              title: 'Keamanan Berlapis', 
+              desc: 'Login siswa wajib menggunakan Kode Orang Tua. Tugas difilter oleh AI.' 
+            },
+            { 
+              icon: Coins, 
+              color: 'text-indigo-600', 
+              bg: 'bg-indigo-50 dark:bg-indigo-900/20', 
+              title: 'Transparan', 
+              desc: 'Harga tugas jelas di awal. Tidak ada biaya tersembunyi.' 
+            },
+            { 
+              icon: CheckCircle, 
+              color: 'text-purple-600', 
+              bg: 'bg-purple-50 dark:bg-purple-900/20', 
+              title: 'Pembayaran Valid', 
+              desc: 'Sistem pembayaran aman menjamin siswa dibayar setelah kerja selesai.' 
+            }
+          ].map((feature, idx) => (
+            <div key={idx} className="group bg-white/40 dark:bg-slate-800/40 backdrop-blur-lg p-6 rounded-2xl border border-white/50 dark:border-slate-700 transition-all duration-300 hover:-translate-y-1 shadow-sm">
+              <div className={`w-10 h-10 ${feature.bg} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                <feature.icon className={`w-5 h-5 ${feature.color}`} />
+              </div>
+              <h3 className="text-base font-bold mb-2 text-slate-800 dark:text-slate-100">{feature.title}</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{feature.desc}</p>
             </div>
           ))}
         </section>
-
-        <section className="py-20 px-4">
-          <div className="max-w-4xl mx-auto bg-indigo-900 dark:bg-indigo-950 rounded-3xl overflow-hidden shadow-2xl relative">
-            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-purple-500 rounded-full blur-3xl opacity-30"></div>
-            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-30"></div>
-            
-            <div className="relative p-12 text-center">
-              <h2 className="text-3xl font-bold mb-8 text-white">Siap memulai perjalananmu?</h2>
-              <div className="grid md:grid-cols-2 gap-8 text-left">
-                <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10">
-                  <h4 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
-                    <Briefcase className="w-5 h-5 text-indigo-300" /> Saya Klien
-                  </h4>
-                  <p className="text-indigo-100 mb-6">Pasang tugas aman untuk remaja berbakat. Bantu generasi penerus berkembang.</p>
-                  <Button onClick={onStart} variant="secondary" className="w-full">Rekrut Talenta</Button>
-                </div>
-                <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10">
-                  <h4 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
-                    <Rocket className="w-5 h-5 text-purple-300" /> Saya Remaja
-                  </h4>
-                  <p className="text-indigo-100 mb-6">Siapkan kode orang tua Anda dan mulai hasilkan uang hari ini.</p>
-                  <Button onClick={onStart} variant="primary" className="w-full bg-white text-indigo-900 hover:bg-indigo-50 dark:hover:bg-gray-200">Mulai Bekerja</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
-      <footer className="text-gray-500 dark:text-gray-400 py-8 text-center text-sm font-medium">
-        <p>© 2024 TeenSkill. Hak Cipta Dilindungi.</p>
+      <footer className="py-8 text-center text-sm font-medium text-slate-400 dark:text-slate-500">
+        <p>© 2024 TeenSkill. Aman. Edukatif. Terpercaya.</p>
       </footer>
     </div>
   );
