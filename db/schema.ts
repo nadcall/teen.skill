@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { text, integer, sqliteTable } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
-  id: text("id").primaryKey(), // We will use Clerk ID here
+  id: text("id").primaryKey(), 
   clerkId: text("clerk_id").notNull().unique(),
   role: text("role").notNull(),
   name: text("name").notNull(),
@@ -11,7 +11,7 @@ export const users = sqliteTable("users", {
   age: integer("age"),
   parentalCode: text("parental_code"),
   balance: integer("balance").default(0).notNull(),
-  xp: integer("xp").default(0).notNull(), // New: Gamification XP
+  xp: integer("xp").default(0).notNull(),
   taskQuotaDaily: integer("task_quota_daily").default(1).notNull(),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -21,8 +21,8 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
-  deadline: text("deadline"), // Kolom Deadline Baru
-  status: text("status").notNull().default("open"), // open, taken, submitted, completed
+  deadline: text("deadline"), // Kolom optional
+  status: text("status").notNull().default("open"), 
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),

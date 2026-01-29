@@ -15,7 +15,7 @@ const getAIClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-// --- SYSTEM HEALTH CHECK (DIAGNOSTIK) ---
+// --- SYSTEM HEALTH CHECK ---
 export async function checkSystemHealthAction() {
   const status = {
     env: false,
@@ -104,6 +104,7 @@ export async function initializeSystemAction() {
   }
 
   try {
+    // Users Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -120,7 +121,7 @@ export async function initializeSystemAction() {
       );
     `);
 
-    // Basic migration for submission columns
+    // Tasks Table with Migration Checks
     try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_url TEXT`); } catch (e) {}
     try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_note TEXT`); } catch (e) {}
     try { await db.run(sql`ALTER TABLE tasks ADD COLUMN deadline TEXT`); } catch (e) {}
@@ -144,6 +145,7 @@ export async function initializeSystemAction() {
       );
     `);
 
+    // Messages Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
@@ -220,13 +222,21 @@ export async function createTaskAction(title: string, description: string, budge
   const user = await syncUser();
   if (!user || user.role !== 'client') throw new Error("Unauthorized");
 
+  // Pastikan deadline null jika string kosong
+  const validDeadline = deadline && deadline.trim() !== '' ? deadline : null;
+
   await db.insert(tasks).values({
     id: uuidv4(),
     title,
     description,
     budget,
-    deadline,
-    clientId: user.id
+    deadline: validDeadline,
+    clientId: user.id,
+    status: 'open', // Explicit default
+    freelancerId: null, // Explicit null
+    takenAt: null, // Explicit null
+    submissionUrl: null, // Explicit null
+    submissionNote: null // Explicit null
   });
   return { success: true };
 }
@@ -235,7 +245,6 @@ export async function deleteTaskAction(taskId: string) {
   const user = await syncUser();
   if (!user || user.role !== 'client') throw new Error("Unauthorized");
 
-  // Hanya boleh hapus jika ownernya benar
   await db.delete(tasks).where(
     and(
       eq(tasks.id, taskId),
@@ -293,7 +302,6 @@ export async function submitTaskAction(taskId: string, submissionUrl: string, su
     } as any)
     .where(eq(tasks.id, taskId));
 
-  // Auto send message to chat
   await db.insert(messages).values({
     id: uuidv4(),
     taskId,
@@ -315,7 +323,7 @@ export async function completePaymentAction(taskId: string) {
       await db.update(users)
         .set({ 
           balance: freelancer.balance + task.budget,
-          xp: (freelancer.xp || 0) + 100 // More XP for completion
+          xp: (freelancer.xp || 0) + 100 
         } as any)
         .where(eq(users.id, task.freelancerId));
   }
