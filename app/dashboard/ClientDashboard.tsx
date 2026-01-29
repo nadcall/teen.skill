@@ -81,15 +81,15 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const totalSpent = tasks.filter(t => t.status === 'completed').reduce((acc, t) => acc + t.budget, 0);
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto space-y-6 pb-12 animate-fade-in-up">
+    <div className="w-full max-w-[1600px] mx-auto space-y-6 pt-24 pb-12 animate-fade-in-up">
       
       {/* HEADER & WELCOME */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-4 px-2">
          <div>
             <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">Dashboard Klien</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1">Kelola proyek dan rekrut talenta muda.</p>
          </div>
-         <Button onClick={() => setIsModalOpen(true)} className="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/20 px-6 py-4 rounded-2xl">
+         <Button onClick={() => setIsModalOpen(true)} className="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/20 px-6 py-4 rounded-2xl transform hover:scale-105 transition-transform">
            <Plus className="w-5 h-5" /> Posting Tugas Baru
          </Button>
       </div>

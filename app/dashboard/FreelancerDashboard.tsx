@@ -9,15 +9,15 @@ import { useUser, UserButton } from "@clerk/nextjs";
 import { useTheme } from '@/context/ThemeContext';
 import { 
   Briefcase, Lock, Search, Smile, Star, MessageCircle, 
-  Home, Clock, Award, Sun, Moon, CheckCircle2, TrendingUp, Wallet, Send, FileText, Link as LinkIcon
+  Home, Clock, Award, Sun, Moon, CheckCircle2, TrendingUp, Wallet, Send, Link as LinkIcon, Zap
 } from 'lucide-react';
 
 interface FreelancerDashboardProps {
   user: any;
 }
 
-const BentoCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/50 dark:border-slate-700 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 ${className}`}>
+const BentoCard = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
+  <div onClick={onClick} className={`bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/60 dark:border-slate-700 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${className}`}>
     {children}
   </div>
 );
@@ -30,9 +30,8 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
   const [tasks, setTasks] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState(initialUser);
   
-  // Modals & Logic
-  const [selectedTask, setSelectedTask] = useState<any | null>(null); // For taking task
-  const [submitTaskModal, setSubmitTaskModal] = useState<any | null>(null); // For submitting task
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [submitTaskModal, setSubmitTaskModal] = useState<any | null>(null);
   const [chatTask, setChatTask] = useState<any | null>(null);
   
   const [parentalCodeInput, setParentalCodeInput] = useState('');
@@ -42,6 +41,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
   const [loading, setLoading] = useState(false);
 
   const level = Math.floor((currentUser.xp || 0) / 100) + 1;
+  const progressToNextLevel = (currentUser.xp % 100);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -84,110 +84,169 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
   const formatRupiah = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
 
   return (
-    <div className="pb-24 pt-4 md:pt-24 px-4 min-h-screen bg-transparent w-full max-w-[1600px] mx-auto">
+    <div className="pt-32 pb-24 px-4 min-h-screen w-full max-w-[1600px] mx-auto">
       
-      {/* DESKTOP NAV */}
-      <nav className="hidden md:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/40 dark:border-slate-700 shadow-xl shadow-sky-900/5 rounded-full px-8 py-3 items-center gap-8 animate-fade-in-up">
-         <span className="font-bold text-sky-600 dark:text-sky-400 text-lg">TeenSkill</span>
-         <div className="flex gap-2">
-            {['market', 'active', 'history'].map(tab => (
-               <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
-                  {tab === 'market' ? 'Bursa' : tab === 'active' ? 'Aktif' : 'Riwayat'}
-               </button>
-            ))}
+      {/* DESKTOP NAV (Floating) */}
+      <nav className="hidden md:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/50 dark:border-slate-700 shadow-2xl shadow-indigo-500/10 rounded-full px-6 py-2 items-center gap-2 animate-fade-in-up transition-all hover:scale-105">
+         <div className="w-10 h-10 bg-gradient-to-tr from-sky-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-4 shadow-lg shadow-sky-500/30">
+            TS
          </div>
-         <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"><Sun className="w-4 h-4" /></button>
-            <UserButton afterSignOutUrl="/" />
+         {['market', 'active', 'history'].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-slate-800 text-white shadow-lg shadow-slate-900/20' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
+               {tab === 'market' ? 'Bursa Kerja' : tab === 'active' ? 'Tugasku' : 'Riwayat'}
+            </button>
+         ))}
+         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2" />
+         <button onClick={toggleTheme} className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition text-slate-500">
+             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+         </button>
+         <div className="pl-2">
+            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-9 h-9 border-2 border-white dark:border-slate-800" } }} />
          </div>
       </nav>
 
       {/* BENTO GRID LAYOUT */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fade-in-up">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fade-in-up">
         
-        {/* COL 1: PROFILE & STATS */}
-        <div className="md:col-span-1 space-y-6">
-           <BentoCard className="flex flex-col items-center text-center">
-              <div className="relative mb-4">
-                 <img src={clerkUser?.imageUrl} className="w-24 h-24 rounded-3xl shadow-lg border-4 border-white dark:border-slate-700" alt="Profile" />
-                 <span className="absolute -bottom-2 -right-2 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-white">Lv.{level}</span>
+        {/* LEFT COLUMN: PROFILE & STATS (Span 3 or 4) */}
+        <div className="md:col-span-4 lg:col-span-3 space-y-6">
+           {/* Profile Card */}
+           <BentoCard className="relative overflow-hidden group border-none bg-gradient-to-br from-white to-sky-50 dark:from-slate-800 dark:to-slate-900">
+              <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-sky-400 to-indigo-500 opacity-20" />
+              <div className="relative z-10 flex flex-col items-center text-center mt-4">
+                 <div className="p-1 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl mb-4">
+                     <img src={clerkUser?.imageUrl} className="w-24 h-24 rounded-[1.8rem]" alt="Profile" />
+                 </div>
+                 <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{currentUser.name.split(' ')[0]}</h2>
+                 <p className="text-sm text-slate-500 font-medium">@{currentUser.username}</p>
+                 
+                 <div className="mt-6 w-full">
+                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                       <span>Level {level}</span>
+                       <span>{currentUser.xp} XP</span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-slate-600">
+                       <div className="bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 h-full rounded-full transition-all duration-1000" style={{ width: `${progressToNextLevel}%` }} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 text-right">{100 - progressToNextLevel} XP to Level {level + 1}</p>
+                 </div>
               </div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">{currentUser.name.split(' ')[0]}</h2>
-              <div className="mt-4 w-full bg-gray-100 dark:bg-slate-900 rounded-full h-2 overflow-hidden">
-                 <div className="bg-gradient-to-r from-sky-400 to-indigo-500 h-full" style={{ width: `${(currentUser.xp % 100)}%` }} />
-              </div>
-              <p className="text-xs text-slate-400 mt-1">{currentUser.xp} XP Total</p>
            </BentoCard>
 
-           <div className="grid grid-cols-2 gap-3">
-              <BentoCard className="p-4 bg-green-500 text-white border-none">
-                 <Wallet className="w-6 h-6 mb-2 opacity-80" />
-                 <p className="text-xs font-medium opacity-90">Saldo</p>
-                 <p className="text-lg font-bold truncate">{formatRupiah(currentUser.balance)}</p>
+           {/* Stats Grid */}
+           <div className="grid grid-cols-2 gap-4">
+              <BentoCard className="p-5 flex flex-col justify-between bg-emerald-500 text-white border-none shadow-emerald-200 hover:shadow-emerald-300">
+                 <div className="bg-white/20 w-10 h-10 rounded-2xl flex items-center justify-center mb-2 backdrop-blur-md">
+                     <Wallet className="w-5 h-5 text-white" />
+                 </div>
+                 <div>
+                    <p className="text-xs font-medium opacity-80 mb-1">Saldo Kamu</p>
+                    <p className="text-lg font-extrabold truncate tracking-tight">{formatRupiah(currentUser.balance)}</p>
+                 </div>
               </BentoCard>
-              <BentoCard className="p-4 bg-orange-500 text-white border-none">
-                 <Star className="w-6 h-6 mb-2 opacity-80" />
-                 <p className="text-xs font-medium opacity-90">Rating</p>
-                 <p className="text-lg font-bold">5.0</p>
+              <BentoCard className="p-5 flex flex-col justify-between bg-amber-500 text-white border-none shadow-amber-200 hover:shadow-amber-300">
+                 <div className="bg-white/20 w-10 h-10 rounded-2xl flex items-center justify-center mb-2 backdrop-blur-md">
+                     <Award className="w-5 h-5 text-white" />
+                 </div>
+                 <div>
+                    <p className="text-xs font-medium opacity-80 mb-1">Total Tugas</p>
+                    <p className="text-lg font-extrabold tracking-tight">
+                        {tasks.filter(t => t.status === 'completed').length || 0} <span className="text-xs font-normal opacity-70">Selesai</span>
+                    </p>
+                 </div>
               </BentoCard>
            </div>
+
+           {/* Daily Quota */}
+           <BentoCard className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none relative overflow-hidden">
+               <Zap className="absolute -bottom-4 -right-4 w-24 h-24 text-white opacity-10 rotate-12" />
+               <h3 className="font-bold text-lg mb-1">Quota Harian</h3>
+               <p className="text-indigo-100 text-sm mb-4">Sisa kesempatan ambil tugas hari ini.</p>
+               <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black">{currentUser.taskQuotaDaily}</span>
+                  <span className="text-sm mb-1 opacity-70">/ 1 Tugas</span>
+               </div>
+           </BentoCard>
         </div>
 
-        {/* COL 2: MAIN FEED (Wide) */}
-        <div className="md:col-span-3">
-           <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-                 {activeTab === 'market' ? 'Lowongan Terbaru' : activeTab === 'active' ? 'Proyek Sedang Berjalan' : 'Riwayat Pekerjaan'}
-              </h2>
+        {/* RIGHT COLUMN: MAIN FEED (Span 8 or 9) */}
+        <div className="md:col-span-8 lg:col-span-9">
+           <div className="flex items-center justify-between mb-8">
+              <div>
+                 <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
+                    {activeTab === 'market' ? 'Bursa Kerja' : activeTab === 'active' ? 'Proyek Aktif' : 'Riwayat'}
+                 </h1>
+                 <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                    {activeTab === 'market' ? 'Temukan peluang baru dan tingkatkan skillmu.' : 'Fokus selesaikan tugasmu tepat waktu.'}
+                 </p>
+              </div>
            </div>
 
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {loading ? [1,2,3,4].map(i => <div key={i} className="h-40 bg-white/40 rounded-3xl animate-pulse" />) :
+           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {loading ? [1,2,3,4].map(i => <div key={i} className="h-48 bg-white/50 rounded-[2rem] animate-pulse" />) :
               tasks.length === 0 ? (
-                 <div className="col-span-2 py-20 text-center">
-                    <Smile className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500">Belum ada data.</p>
+                 <div className="col-span-2 py-24 text-center bg-white/40 dark:bg-slate-800/40 rounded-[2rem] border-2 border-dashed border-slate-300 dark:border-slate-700">
+                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Smile className="w-10 h-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">Belum ada tugas saat ini.</h3>
+                    <p className="text-slate-400">Coba cek kembali nanti ya!</p>
                  </div>
               ) : (
                  tasks.map(task => (
-                    <BentoCard key={task.id} className="relative group overflow-hidden border-l-4 border-l-sky-500">
-                       <div className="flex justify-between items-start mb-4">
-                          <div className="flex gap-2">
-                             {task.status === 'open' && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">OPEN</span>}
-                             {task.status === 'submitted' && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold">REVIEW</span>}
-                             <span className="text-xs text-slate-400">{new Date(task.createdAt).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-xl font-black text-slate-800 dark:text-white">{formatRupiah(task.budget)}</p>
-                       </div>
+                    <BentoCard key={task.id} className="group relative flex flex-col justify-between min-h-[220px] border-l-[6px] border-l-transparent hover:border-l-sky-500 overflow-hidden">
                        
-                       <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white leading-tight">{task.title}</h3>
-                       <p className="text-sm text-slate-500 line-clamp-2 mb-6">{task.description}</p>
+                       {/* Background decoration */}
+                       <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 dark:bg-sky-900/10 rounded-bl-[4rem] -z-10 transition-transform group-hover:scale-150 duration-500" />
 
-                       <div className="flex gap-2 mt-auto">
-                          {activeTab === 'market' && (
-                             <Button onClick={() => setSelectedTask(task)} className="w-full bg-slate-900 text-white">Ambil Tugas</Button>
-                          )}
-                          
-                          {activeTab === 'active' && (
-                             <>
-                                <Button variant="secondary" onClick={() => setChatTask(task)} className="flex-1"><MessageCircle className="w-4 h-4" /></Button>
-                                {task.status === 'taken' ? (
-                                   <Button onClick={() => setSubmitTaskModal(task)} className="flex-[2] bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20">
-                                      <Send className="w-4 h-4 mr-2" /> Submit
-                                   </Button>
-                                ) : (
-                                   <div className="flex-[2] bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center rounded-xl">
-                                      Menunggu Review
-                                   </div>
-                                )}
-                             </>
-                          )}
-
-                          {activeTab === 'history' && (
-                             <div className="w-full bg-green-100 text-green-700 font-bold text-xs py-2 rounded-xl text-center flex items-center justify-center gap-2">
-                                <CheckCircle2 className="w-4 h-4" /> Selesai
+                       <div>
+                          <div className="flex justify-between items-start mb-4">
+                             <div className="flex flex-wrap gap-2">
+                                {task.status === 'open' && <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">OPEN</span>}
+                                {task.status === 'taken' && <span className="bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">ON PROGRESS</span>}
+                                {task.status === 'submitted' && <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">UNDER REVIEW</span>}
+                                {task.status === 'completed' && <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">DONE</span>}
+                                <span className="text-xs text-slate-400 py-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(task.createdAt).toLocaleDateString()}</span>
                              </div>
-                          )}
+                          </div>
+                          
+                          <h3 className="font-extrabold text-xl mb-3 text-slate-900 dark:text-white leading-tight group-hover:text-sky-600 transition-colors">{task.title}</h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-6">{task.description}</p>
+                       </div>
+
+                       <div className="flex items-end justify-between mt-auto">
+                          <div className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+                             {formatRupiah(task.budget)}
+                          </div>
+                          
+                          <div className="flex gap-2">
+                              {activeTab === 'market' && (
+                                 <Button onClick={() => setSelectedTask(task)} className="bg-slate-900 text-white shadow-xl shadow-slate-900/20 px-6 h-11 rounded-xl hover:scale-105">
+                                    Ambil Tugas
+                                 </Button>
+                              )}
+                              
+                              {activeTab === 'active' && (
+                                 <>
+                                    <Button variant="secondary" onClick={() => setChatTask(task)} className="w-11 h-11 p-0 rounded-xl flex items-center justify-center"><MessageCircle className="w-5 h-5" /></Button>
+                                    {task.status === 'taken' ? (
+                                       <Button onClick={() => setSubmitTaskModal(task)} className="bg-blue-600 text-white shadow-blue-500/30 px-5 h-11 rounded-xl">
+                                          <Send className="w-4 h-4 mr-2" /> Submit
+                                       </Button>
+                                    ) : (
+                                       <div className="px-4 py-2 bg-orange-50 text-orange-600 border border-orange-100 rounded-xl text-xs font-bold flex items-center">
+                                          <Clock className="w-3 h-3 mr-1" /> Menunggu Review
+                                       </div>
+                                    )}
+                                 </>
+                              )}
+
+                              {activeTab === 'history' && (
+                                 <div className="px-4 py-2 bg-green-50 text-green-600 border border-green-100 rounded-xl text-xs font-bold flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4" /> Pembayaran Diterima
+                                 </div>
+                              )}
+                          </div>
                        </div>
                     </BentoCard>
                  ))
@@ -196,41 +255,73 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
         </div>
       </div>
 
-      {/* --- MOBILE NAV --- */}
-      <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 bg-white/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl p-2 flex justify-around">
-          <button onClick={() => setActiveTab('market')} className={`p-3 rounded-2xl ${activeTab === 'market' ? 'text-sky-600 bg-sky-50' : 'text-slate-400'}`}><Home className="w-6 h-6" /></button>
-          <button onClick={() => setActiveTab('active')} className={`p-3 rounded-2xl ${activeTab === 'active' ? 'text-sky-600 bg-sky-50' : 'text-slate-400'}`}><Briefcase className="w-6 h-6" /></button>
-          <button onClick={() => setActiveTab('history')} className={`p-3 rounded-2xl ${activeTab === 'history' ? 'text-sky-600 bg-sky-50' : 'text-slate-400'}`}><Clock className="w-6 h-6" /></button>
+      {/* --- MOBILE NAV (Dock Style) --- */}
+      <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-700 shadow-2xl rounded-3xl p-2 flex justify-between items-center px-6">
+          <button onClick={() => setActiveTab('market')} className={`flex flex-col items-center gap-1 ${activeTab === 'market' ? 'text-sky-600' : 'text-slate-400'}`}>
+             <div className={`p-2 rounded-xl transition-all ${activeTab === 'market' ? 'bg-sky-50' : ''}`}><Home className="w-6 h-6" /></div>
+          </button>
+          <button onClick={() => setActiveTab('active')} className={`flex flex-col items-center gap-1 ${activeTab === 'active' ? 'text-sky-600' : 'text-slate-400'}`}>
+             <div className={`p-2 rounded-xl transition-all ${activeTab === 'active' ? 'bg-sky-50' : ''}`}><Briefcase className="w-6 h-6" /></div>
+          </button>
+          <div className="relative -top-5">
+             <div className="bg-sky-500 p-1 rounded-full shadow-lg shadow-sky-500/40">
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-10 h-10 border-2 border-white" } }} />
+             </div>
+          </div>
+          <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 ${activeTab === 'history' ? 'text-sky-600' : 'text-slate-400'}`}>
+             <div className={`p-2 rounded-xl transition-all ${activeTab === 'history' ? 'bg-sky-50' : ''}`}><Clock className="w-6 h-6" /></div>
+          </button>
+          <button onClick={toggleTheme} className="text-slate-400">
+             <div className="p-2"><Sun className="w-6 h-6" /></div>
+          </button>
       </div>
 
       {/* MODAL: TAKE TASK */}
-      <Modal isOpen={!!selectedTask} onClose={() => { setSelectedTask(null); setError(''); }} title="Verifikasi">
-        <form onSubmit={handleTakeTask} className="space-y-4">
-          <p className="text-sm text-slate-600">Masukkan kode orang tua untuk mengambil tugas <strong>{selectedTask?.title}</strong>.</p>
-          <div className="relative">
-             <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-             <Input type="password" className="pl-10" placeholder="Kode Orang Tua" value={parentalCodeInput} onChange={e => setParentalCodeInput(e.target.value)} required />
+      <Modal isOpen={!!selectedTask} onClose={() => { setSelectedTask(null); setError(''); }} title="Verifikasi Izin Orang Tua">
+        <form onSubmit={handleTakeTask} className="space-y-6">
+          <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
+             <Lock className="w-6 h-6 text-amber-500 flex-shrink-0" />
+             <p className="text-sm text-amber-800 leading-relaxed">
+                Untuk keamanan, masukkan <strong>Kode Orang Tua</strong> yang dibuat saat pendaftaran untuk mengambil tugas: <br/>
+                <span className="font-bold text-amber-900">"{selectedTask?.title}"</span>
+             </p>
           </div>
-          {error && <p className="text-red-500 text-xs">{error}</p>}
-          <Button type="submit" isLoading={loading} className="w-full bg-sky-500 text-white">Verifikasi</Button>
+          
+          <div className="relative">
+             <Lock className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+             <Input type="password" className="pl-12 h-12 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white transition-all" placeholder="Masukkan Kode PIN" value={parentalCodeInput} onChange={e => setParentalCodeInput(e.target.value)} required />
+          </div>
+          
+          {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold text-center border border-red-100">{error}</div>}
+          
+          <div className="flex gap-3">
+             <Button type="button" variant="ghost" className="flex-1" onClick={() => setSelectedTask(null)}>Batal</Button>
+             <Button type="submit" isLoading={loading} className="flex-[2] bg-slate-900 text-white shadow-lg h-12 rounded-xl">Konfirmasi</Button>
+          </div>
         </form>
       </Modal>
 
       {/* MODAL: SUBMIT TASK */}
       <Modal isOpen={!!submitTaskModal} onClose={() => setSubmitTaskModal(null)} title="Kirim Hasil Kerja">
-         <form onSubmit={handleSubmitWork} className="space-y-4">
+         <form onSubmit={handleSubmitWork} className="space-y-5">
             <div>
-               <label className="text-xs font-bold text-slate-500 uppercase mb-1">Link Hasil Kerja</label>
+               <label className="text-xs font-bold text-slate-500 uppercase mb-2 block ml-1">Link File / Dokumen</label>
                <div className="relative">
-                  <LinkIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                  <Input className="pl-10" placeholder="https://drive.google.com/..." value={submissionData.url} onChange={e => setSubmissionData({...submissionData, url: e.target.value})} required />
+                  <LinkIcon className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+                  <Input className="pl-12 h-12 rounded-2xl bg-slate-50 border-slate-200" placeholder="https://drive.google.com/..." value={submissionData.url} onChange={e => setSubmissionData({...submissionData, url: e.target.value})} required />
                </div>
             </div>
             <div>
-               <label className="text-xs font-bold text-slate-500 uppercase mb-1">Catatan Tambahan</label>
-               <textarea className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none text-sm" placeholder="Saya sudah menyelesaikan..." value={submissionData.note} onChange={e => setSubmissionData({...submissionData, note: e.target.value})} />
+               <label className="text-xs font-bold text-slate-500 uppercase mb-2 block ml-1">Catatan Tambahan</label>
+               <textarea 
+                  className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none text-sm focus:ring-2 focus:ring-sky-500/20 transition-all" 
+                  rows={4}
+                  placeholder="Ceritakan sedikit tentang hasil kerjamu..." 
+                  value={submissionData.note} 
+                  onChange={e => setSubmissionData({...submissionData, note: e.target.value})} 
+               />
             </div>
-            <Button type="submit" isLoading={loading} className="w-full bg-blue-600 text-white">Kirim ke Klien</Button>
+            <Button type="submit" isLoading={loading} className="w-full bg-blue-600 text-white h-12 rounded-xl shadow-lg shadow-blue-500/20">Kirim ke Klien</Button>
          </form>
       </Modal>
 

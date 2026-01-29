@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -15,17 +16,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    // Cek preferensi sistem atau localStorage
+    // Cek localStorage, jika tidak ada, DEFAULT KE LIGHT (abaikan system preference)
     const savedTheme = localStorage.getItem('teenskill-theme') as Theme;
     if (savedTheme) {
       setTheme(savedTheme);
+      document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(savedTheme);
     } else {
-       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-       if (systemPrefersDark) {
-         setTheme('dark');
-         document.documentElement.classList.add('dark');
-       }
+       // Default Light sesuai request
+       setTheme('light');
+       document.documentElement.classList.add('light');
     }
   }, []);
 
