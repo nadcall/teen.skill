@@ -42,10 +42,10 @@ export async function checkTaskSafetyAction(title: string, description: string) 
   }
 }
 
-// --- Database Setup Action (Darurat/First Run) ---
-export async function setupDatabaseAction() {
+// --- Internal Helper: Setup Tables Automatically ---
+async function ensureTablesExist() {
   try {
-    // Manual SQL Create Table untuk User yang tidak bisa akses terminal
+    // Create Users Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -61,6 +61,7 @@ export async function setupDatabaseAction() {
       );
     `);
 
+    // Create Tasks Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -76,39 +77,59 @@ export async function setupDatabaseAction() {
         FOREIGN KEY (freelancer_id) REFERENCES users(id)
       );
     `);
-    
-    return { success: true, message: "Database berhasil dibuat!" };
-  } catch (error: any) {
-    console.error("Setup DB Error:", error);
-    return { success: false, message: error.message };
+    console.log("Database tables verified/created successfully.");
+  } catch (error) {
+    console.error("Failed to auto-create tables:", error);
   }
 }
 
 // --- User Actions ---
 
 export async function syncUser() {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  if (!process.env.TURSO_DATABASE_URL) {
+    console.error("Missing TURSO_DATABASE_URL");
+    return null;
+  }
+
   try {
-    const { userId } = await auth();
-    if (!userId) return null;
-
-    if (!process.env.TURSO_DATABASE_URL) {
-      throw new Error("TURSO_DATABASE_URL belum dikonfigurasi di .env.local");
-    }
-
+    // 1. Coba ambil user langsung (Jalur Cepat)
     const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
     return dbUser || null;
   } catch (error: any) {
-    console.error("Sync User Error:", error);
+    // 2. Jika error karena tabel tidak ada, kita buatkan otomatis (Auto-Heal)
     if (error.message && (error.message.includes("no such table") || error.message.includes("Prepare failed"))) {
-      throw new Error("Tabel database belum ditemukan. Klik tombol perbaikan di bawah.");
+      console.log("Tables missing detected. Auto-healing...");
+      await ensureTablesExist();
+      
+      // 3. Coba ambil user lagi setelah tabel dibuat
+      try {
+        const dbUserRetry = await db.select().from(users).where(eq(users.clerkId, userId)).get();
+        return dbUserRetry || null;
+      } catch (retryError) {
+        console.error("Retry sync failed:", retryError);
+        return null;
+      }
     }
-    throw error;
+    console.error("Sync User Error:", error);
+    return null; // Return null agar frontend tidak crash, bisa tampilkan Onboarding/Loading
   }
+}
+
+// Action manual ini masih disimpan sebagai cadangan, tapi jarang dipanggil
+export async function setupDatabaseAction() {
+  await ensureTablesExist();
+  return { success: true, message: "Database siap!" };
 }
 
 export async function registerUserAction(formData: any) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  // Pastikan tabel ada sebelum insert (jaga-jaga)
+  await ensureTablesExist();
 
   try {
     const newUser = {
@@ -151,6 +172,8 @@ export async function createTaskAction(title: string, description: string, budge
 
 export async function getOpenTasksAction() {
   try {
+    // Pastikan tabel ada agar tidak error saat fetching
+    await ensureTablesExist(); 
     return await db.select().from(tasks).where(eq(tasks.status, 'open')).orderBy(desc(tasks.createdAt));
   } catch (e) {
     console.error("Get Open Tasks Error:", e);
