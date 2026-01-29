@@ -5,7 +5,7 @@ import { text, integer, sqliteTable } from "drizzle-orm/sqlite-core";
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(), // We will use Clerk ID here
   clerkId: text("clerk_id").notNull().unique(),
-  role: text("role").notNull(), // Removed enum to fix type inference issues
+  role: text("role").notNull(),
   name: text("name").notNull(),
   username: text("username").notNull(),
   age: integer("age"),
@@ -20,7 +20,8 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
-  status: text("status").default("open").notNull(), // Removed enum to fix type inference issues
+  // Explicit definition to help inference
+  status: text("status").notNull().default("open"), 
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
