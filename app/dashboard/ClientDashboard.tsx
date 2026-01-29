@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { createTaskAction, getMyTasksAction, completePaymentAction } from '@/app/actions';
+import { createTaskAction, getMyTasksAction, completePaymentAction, checkTaskSafetyAction } from '@/app/actions';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
 import { XenditPaymentModal } from '@/components/XenditPaymentModal';
-import { Plus, List, CheckCircle, Wallet } from 'lucide-react';
+import { Plus, List, CheckCircle, Wallet, ShieldAlert } from 'lucide-react';
 
 interface ClientDashboardProps {
   user: any;
@@ -15,6 +15,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // State for Payment
   const [paymentTask, setPaymentTask] = useState<any | null>(null);
@@ -32,14 +33,26 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const handlePostTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setAiError(null);
 
     try {
+      // 1. Cek Keamanan dengan AI
+      const safetyCheck = await checkTaskSafetyAction(newTask.title, newTask.description);
+      
+      if (!safetyCheck.safe) {
+        setAiError(safetyCheck.reason || "Konten tugas terdeteksi tidak aman.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Jika aman, buat tugas
       await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
       setIsModalOpen(false);
       setNewTask({ title: '', description: '', budget: '' });
       fetchTasks();
     } catch (error) {
       console.error(error);
+      setAiError("Terjadi kesalahan sistem.");
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +127,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
       </div>
 
       {/* Task Creation Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Buat Tugas Baru">
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setAiError(null); }} title="Buat Tugas Baru">
         <form onSubmit={handlePostTask} className="space-y-5">
           <Input 
             label="Judul Tugas" 
@@ -142,9 +155,21 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             required
           />
 
+          {aiError && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex gap-3 items-start animate-fade-in-up">
+              <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-700 dark:text-red-300">Tugas Ditolak oleh AI</p>
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{aiError}</p>
+              </div>
+            </div>
+          )}
+
           <div className="pt-2 flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button type="submit" isLoading={isLoading}>Posting Tugas</Button>
+            <Button type="submit" isLoading={isLoading}>
+              {isLoading ? 'Memeriksa Keamanan...' : 'Posting Tugas'}
+            </Button>
           </div>
         </form>
       </Modal>

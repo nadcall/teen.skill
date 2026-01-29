@@ -5,7 +5,43 @@ import { users, tasks } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
+import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
+
+// --- Gemini AI ---
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+
+export async function checkTaskSafetyAction(title: string, description: string) {
+  // Jika API Key tidak ada (misal di local tanpa env), kita bypass agar tidak error
+  if (!process.env.API_KEY) return { safe: true, reason: "Dev mode (No API Key)" };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `
+        Analisis deskripsi tugas freelance untuk remaja (13-17 thn).
+        Judul: ${title}
+        Deskripsi: ${description}
+        
+        Apakah tugas ini aman? Tugas TIDAK AMAN jika mengandung:
+        - Pertemuan fisik privat (bahaya predator).
+        - Konten dewasa/ilegal.
+        - Penipuan/skema cepat kaya.
+        
+        Output JSON Only: { "safe": boolean, "reason": "alasan singkat bahasa indonesia" }
+      `,
+      config: { responseMimeType: 'application/json' }
+    });
+    
+    const text = response.text || '{}';
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("AI Check Error:", e);
+    // Fallback jika AI error, anggap aman atau block (tergantung kebijakan). 
+    // Di sini kita anggap aman sementara agar user tidak stuck.
+    return { safe: true, reason: "AI Service Unavailable" };
+  }
+}
 
 // --- User Actions ---
 
