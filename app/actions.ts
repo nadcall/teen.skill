@@ -96,6 +96,7 @@ export async function initializeSystemAction() {
   }
 
   try {
+    // Add xp column if logic allows migration, for now using create if not exists
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -106,10 +107,18 @@ export async function initializeSystemAction() {
         age INTEGER,
         parental_code TEXT,
         balance INTEGER DEFAULT 0 NOT NULL,
+        xp INTEGER DEFAULT 0 NOT NULL,
         task_quota_daily INTEGER DEFAULT 1 NOT NULL,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Basic migration check for existing tables (manual simple check)
+    try {
+        await db.run(sql`ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0 NOT NULL`);
+    } catch (e) {
+        // Ignore if column exists
+    }
 
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
@@ -184,6 +193,7 @@ export async function registerUserAction(formData: any) {
       age: parseInt(formData.age) || 0,
       parentalCode: formData.parentalCode || null,
       balance: 0,
+      xp: 0,
       taskQuotaDaily: 1,
     };
 
@@ -255,8 +265,12 @@ export async function completePaymentAction(taskId: string) {
   
   const freelancer = await db.select().from(users).where(eq(users.id, task.freelancerId)).get();
   if(freelancer) {
+      // Add Balance + Add 50 XP per task
       await db.update(users)
-        .set({ balance: freelancer.balance + task.budget } as any)
+        .set({ 
+          balance: freelancer.balance + task.budget,
+          xp: (freelancer.xp || 0) + 50 
+        } as any)
         .where(eq(users.id, task.freelancerId));
   }
   

@@ -11,6 +11,7 @@ export const users = sqliteTable("users", {
   age: integer("age"),
   parentalCode: text("parental_code"),
   balance: integer("balance").default(0).notNull(),
+  xp: integer("xp").default(0).notNull(), // New: Gamification XP
   taskQuotaDaily: integer("task_quota_daily").default(1).notNull(),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

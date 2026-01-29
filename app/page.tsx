@@ -116,53 +116,39 @@ export default function Home() {
   // --- MAIN APP ---
   return (
     <BackgroundWrapper>
-      {/* Navbar */}
-      <nav className="fixed top-0 w-full p-4 z-50 flex justify-between items-center max-w-7xl mx-auto left-0 right-0">
-         <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/40 dark:border-slate-700 flex items-center gap-2 shadow-sm">
-            <Rocket className="w-5 h-5 text-sky-500" />
-            <span className="font-bold text-slate-800 dark:text-white tracking-tight">TeenSkill</span>
-         </div>
-         
-         <div className="flex gap-2 items-center">
-            {/* Theme Toggle Button */}
-            <button 
-              onClick={toggleTheme}
-              className="p-2.5 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-white/40 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
-              title={theme === 'light' ? "Ganti ke Mode Gelap" : "Ganti ke Mode Terang"}
-            >
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </button>
+      {/* Navbar Global (Hanya muncul jika BELUM login atau BELUM setup profile) */}
+      {(!isSignedIn || !dbUser) && (
+        <nav className="fixed top-0 w-full p-4 z-50 flex justify-between items-center max-w-7xl mx-auto left-0 right-0 animate-fade-in-up">
+           <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/40 dark:border-slate-700 flex items-center gap-2 shadow-sm">
+              <Rocket className="w-5 h-5 text-sky-500" />
+              <span className="font-bold text-slate-800 dark:text-white tracking-tight">TeenSkill</span>
+           </div>
+           
+           <div className="flex gap-2 items-center">
+              <button 
+                onClick={toggleTheme}
+                className="p-2.5 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-white/40 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
+              >
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              </button>
 
-            {!isSignedIn ? (
-              <>
-                <SignInButton mode="modal">
-                  <Button variant="ghost" className="text-xs px-4 py-2 font-bold hover:bg-sky-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">Masuk</Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <Button className="text-xs px-4 py-2 shadow-lg shadow-sky-500/20 bg-sky-500 hover:bg-sky-600 text-white">Daftar</Button>
-                </SignUpButton>
-              </>
-            ) : (
-               <div className="flex items-center gap-2 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-1.5 rounded-full border border-white/40 dark:border-slate-700 shadow-sm">
-                 {dbUser && (
-                   <span className="hidden sm:inline text-xs font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 px-3 py-1.5 rounded-full ml-1">
-                      {dbUser.role === 'client' ? 'Klien' : 'Freelancer'}
-                   </span>
-                 )}
-                 <UserButton afterSignOutUrl="/" />
-                 
-                 {/* Explicit Logout Button (Mobile Friendly) */}
-                 <div className="sm:hidden border-l border-gray-200 dark:border-gray-700 pl-2 ml-1">
-                   <SignOutButton>
-                     <button className="p-1 text-red-400"><LogOut className="w-4 h-4" /></button>
-                   </SignOutButton>
-                 </div>
-               </div>
-            )}
-         </div>
-      </nav>
+              {!isSignedIn && (
+                <>
+                  <SignInButton mode="modal">
+                    <Button variant="ghost" className="text-xs px-4 py-2 font-bold hover:bg-sky-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">Masuk</Button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <Button className="text-xs px-4 py-2 shadow-lg shadow-sky-500/20 bg-sky-500 hover:bg-sky-600 text-white">Daftar</Button>
+                  </SignUpButton>
+                </>
+              )}
+           </div>
+        </nav>
+      )}
 
-      <main className="pt-24 px-4 pb-12 max-w-7xl mx-auto min-h-screen">
+      {/* Main Content Area */}
+      {/* Remove padding top if user is logged in because dashboards have their own layout */}
+      <main className={`min-h-screen ${(!isSignedIn || !dbUser) ? 'pt-24 px-4 pb-12' : ''} max-w-7xl mx-auto`}>
         {!isSignedIn && <LandingPage />}
         {isSignedIn && !dbUser && <Onboarding onComplete={(u) => setDbUser(u)} />}
         {isSignedIn && dbUser && dbUser.role === 'client' && <ClientDashboard user={dbUser} />}
