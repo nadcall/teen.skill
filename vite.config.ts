@@ -1,3 +1,3 @@
-// File ini dinonaktifkan karena project menggunakan Next.js.
-// Kode import vite telah dihapus untuk mencegah build error.
-export {}; 
+// FILE INI DINONAKTIFKAN SEPENUHNYA.
+// Jangan hapus file ini jika build error "file not found", tapi biarkan isinya kosong/komentar saja.
+// Project ini menggunakan Next.js, bukan Vite.
