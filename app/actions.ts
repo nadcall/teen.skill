@@ -61,10 +61,14 @@ export async function checkSystemHealthAction() {
 
 export async function checkTaskSafetyAction(title: string, description: string) {
   const ai = getAIClient();
+  // Jika tidak ada API Key, langsung anggap aman (Bypass)
   if (!ai) return { safe: true, reason: "AI Check Skipped (No API Key)" };
 
+  // Batas waktu tunggu AI (5 Detik)
+  const TIMEOUT_MS = 5000; 
+
   try {
-    const response = await ai.models.generateContent({
+    const aiCall = ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `
         Analisis deskripsi tugas freelance untuk remaja (13-17 thn).
@@ -80,12 +84,21 @@ export async function checkTaskSafetyAction(title: string, description: string) 
       `,
       config: { responseMimeType: 'application/json' }
     });
+
+    // Promise Race: Mana yang lebih cepat, AI selesai atau Timer 5 detik habis
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("AI_TIMEOUT")), TIMEOUT_MS)
+    );
+
+    const response: any = await Promise.race([aiCall, timeoutPromise]);
     
     const text = response.text || '{}';
     return JSON.parse(text);
-  } catch (e) {
-    console.error("AI Check Error:", e);
-    return { safe: true, reason: "AI Service Unavailable (Auto-Approved)" };
+
+  } catch (e: any) {
+    console.error("AI Check Error/Timeout:", e.message);
+    // FAIL OPEN: Jika AI error atau timeout, anggap aman agar user tidak menunggu selamanya.
+    return { safe: true, reason: "AI Service Busy (Auto-Approved by System)" };
   }
 }
 

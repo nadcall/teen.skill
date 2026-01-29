@@ -6,7 +6,7 @@ import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
 import { XenditPaymentModal } from '@/components/XenditPaymentModal';
 import { ChatWindow } from '@/components/ChatWindow';
-import { Plus, List, CheckCircle, Wallet, ShieldAlert, MessageCircle } from 'lucide-react';
+import { Plus, List, CheckCircle, Wallet, ShieldAlert, MessageCircle, Sparkles } from 'lucide-react';
 
 interface ClientDashboardProps {
   user: any;
@@ -15,7 +15,10 @@ interface ClientDashboardProps {
 export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // Loading Stages: 'idle' | 'analyzing' | 'saving'
+  const [loadingStage, setLoadingStage] = useState<'idle' | 'analyzing' | 'saving'>('idle');
+  
   const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -42,19 +45,23 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
   const handlePostTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoadingStage('analyzing');
     setAiError(null);
 
     try {
+      // Step 1: Check Safety (Max 5 Seconds)
       const safetyCheck = await checkTaskSafetyAction(newTask.title, newTask.description);
       
       if (!safetyCheck.safe) {
         setAiError(safetyCheck.reason || "Konten tugas terdeteksi tidak aman.");
-        setIsLoading(false);
+        setLoadingStage('idle');
         return;
       }
 
+      // Step 2: Save to DB
+      setLoadingStage('saving');
       await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
+      
       setIsModalOpen(false);
       setNewTask({ title: '', description: '', budget: '' });
       fetchTasks();
@@ -62,7 +69,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
       console.error(error);
       setAiError("Terjadi kesalahan sistem.");
     } finally {
-      setIsLoading(false);
+      setLoadingStage('idle');
     }
   };
 
@@ -185,8 +192,12 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
           <div className="pt-2 flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button type="submit" isLoading={isLoading} className="bg-sky-500 text-white">
-              {isLoading ? 'Memeriksa Keamanan...' : 'Posting Tugas'}
+            <Button type="submit" isLoading={loadingStage !== 'idle'} className="bg-sky-500 text-white min-w-[140px]">
+              {loadingStage === 'analyzing' ? (
+                 <>
+                   <Sparkles className="w-4 h-4 animate-pulse" /> Menganalisa...
+                 </>
+              ) : loadingStage === 'saving' ? 'Menyimpan...' : 'Posting Tugas'}
             </Button>
           </div>
         </form>
