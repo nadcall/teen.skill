@@ -36,13 +36,25 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     setError('');
 
     try {
-      const user = await registerUserAction({
+      const result = await registerUserAction({
         ...formData,
         role
       });
-      onComplete(user);
+      
+      if (result && result.success) {
+        // SUKSES: Reload halaman browser secara manual agar state user di-refresh bersih
+        window.location.reload();
+      } else {
+        setError('Gagal mendaftar. Silakan coba lagi.');
+      }
     } catch (err: any) {
-      setError(err.message || 'Registrasi gagal');
+      console.error("Registration Error:", err);
+      // Tampilkan pesan error yang lebih ramah
+      if (err.message.includes("TURSO_DATABASE_URL")) {
+         setError("Sistem Database belum dikonfigurasi oleh Admin (Environment Variables Missing).");
+      } else {
+         setError(err.message || 'Terjadi kesalahan sistem saat mendaftar.');
+      }
     } finally {
       setLoading(false);
     }

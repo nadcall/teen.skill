@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { createTaskAction, getMyTasksAction, completePaymentAction, checkTaskSafetyAction } from '@/app/actions';
 import { Button } from '@/components/Button';
@@ -47,6 +48,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
       // 2. Jika aman, buat tugas
       await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
+      
+      // 3. Reset dan refresh data manual
       setIsModalOpen(false);
       setNewTask({ title: '', description: '', budget: '' });
       fetchTasks();

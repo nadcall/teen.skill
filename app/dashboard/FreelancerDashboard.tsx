@@ -43,10 +43,16 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user }
 
     try {
       await takeTaskAction(selectedTask.id, parentalCodeInput);
+      
+      // Manual refresh
       setSelectedTask(null);
       setParentalCodeInput('');
-      fetchTasks();
       setView('my-tasks');
+      // Fetch dilakukan otomatis karena dependency view berubah, 
+      // tapi karena kita baru set view, kita panggil fetch untuk my-tasks nanti.
+      // Namun untuk amannya kita reload window saja jika perlu, atau fetch ulang manual.
+      // Di sini kita biarkan useEffect view yang mengurusnya.
+      
     } catch (err: any) {
       setError(err.message);
     } finally {

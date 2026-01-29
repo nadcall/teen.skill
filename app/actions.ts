@@ -3,9 +3,8 @@
 
 import { db } from '@/lib/db';
 import { users, tasks } from '@/db/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { revalidatePath } from 'next/cache';
+import { eq, desc, sql } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -38,13 +37,22 @@ export async function checkTaskSafetyAction(title: string, description: string) 
     return JSON.parse(text);
   } catch (e) {
     console.error("AI Check Error:", e);
-    return { safe: true, reason: "AI Service Unavailable" };
+    // Fail safe: izinkan tapi log error, atau tolak demi keamanan
+    return { safe: true, reason: "AI Service Unavailable (Auto-Approved)" };
   }
 }
 
 // --- Internal Helper: Setup Tables Automatically ---
 async function ensureTablesExist() {
   try {
+    // Cek koneksi dulu dengan query ringan
+    try {
+       await db.run(sql`SELECT 1`);
+    } catch (connError) {
+       console.error("Database connection failed:", connError);
+       throw new Error("Koneksi Database Gagal. Cek Environment Variables di Vercel.");
+    }
+
     // Create Users Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
@@ -78,56 +86,51 @@ async function ensureTablesExist() {
       );
     `);
     console.log("Database tables verified/created successfully.");
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to auto-create tables:", error);
+    // Jangan throw error di sini agar aplikasi tidak crash total, biarkan action lain yang handle
   }
 }
 
 // --- User Actions ---
 
 export async function syncUser() {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  if (!process.env.TURSO_DATABASE_URL) {
-    console.error("Missing TURSO_DATABASE_URL");
-    return null; // Return null to allow frontend to handle gracefully
-  }
-
   try {
-    // 1. Coba ambil user
-    const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
-    return dbUser || null;
-  } catch (error: any) {
-    // 2. Jika error karena tabel tidak ada, buat tabelnya
-    if (error.message && (error.message.includes("no such table") || error.message.includes("Prepare failed"))) {
-      console.log("Tables missing. Creating tables...");
-      await ensureTablesExist();
-      
-      // Setelah buat tabel, jangan fetch lagi, karena tabel pasti kosong.
-      // Langsung return null agar user diarahkan ke Onboarding untuk Insert data.
+    const { userId } = await auth();
+    if (!userId) return null;
+
+    if (!process.env.TURSO_DATABASE_URL) {
+      console.error("Missing TURSO_DATABASE_URL");
       return null;
     }
-    
-    console.error("Sync User Error:", error);
-    return null; // Return null agar tidak crash
-  }
-}
 
-// Action manual ini masih disimpan sebagai cadangan
-export async function setupDatabaseAction() {
-  await ensureTablesExist();
-  return { success: true, message: "Database siap!" };
+    // 1. Coba ambil user
+    try {
+      const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
+      return dbUser || null;
+    } catch (queryError: any) {
+      // 2. Jika error karena tabel tidak ada, buat tabelnya
+      if (queryError.message && (queryError.message.includes("no such table") || queryError.message.includes("Prepare failed"))) {
+        console.log("Tables missing. Creating tables...");
+        await ensureTablesExist();
+        return null; // Return null agar user diarahkan ke Onboarding
+      }
+      throw queryError;
+    }
+  } catch (error: any) {
+    console.error("Sync User Error:", error);
+    return null; 
+  }
 }
 
 export async function registerUserAction(formData: any) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-
-  // Pastikan tabel ada sebelum insert (jaga-jaga)
-  await ensureTablesExist();
+  if (!userId) throw new Error("Unauthorized: Tidak ada sesi login.");
 
   try {
+    // Pastikan tabel ada sebelum insert
+    await ensureTablesExist();
+
     const newUser = {
       id: uuidv4(),
       clerkId: userId,
@@ -140,12 +143,17 @@ export async function registerUserAction(formData: any) {
       taskQuotaDaily: 1,
     };
 
+    // Insert ke Database
     await db.insert(users).values(newUser);
-    revalidatePath('/');
-    return newUser;
+    
+    // PENTING: Jangan gunakan revalidatePath('/') di sini jika menyebabkan error render di Vercel.
+    // Kita return success flag, biar Client yang reload page.
+    return { success: true, user: newUser };
+
   } catch (error: any) {
-    console.error("Register Error:", error);
-    throw new Error(error.message || "Gagal mendaftarkan user.");
+    console.error("Register Error Detailed:", error);
+    // Return error message yang bisa dibaca user
+    throw new Error(error.message || "Gagal mendaftarkan user ke database.");
   }
 }
 
@@ -163,7 +171,8 @@ export async function createTaskAction(title: string, description: string, budge
     clientId: user.id,
     status: 'open'
   });
-  revalidatePath('/');
+  // Return simple success object
+  return { success: true };
 }
 
 export async function getOpenTasksAction() {
@@ -201,7 +210,7 @@ export async function takeTaskAction(taskId: string, parentalCodeInput: string) 
     .set({ status: 'taken', freelancerId: user.id, takenAt: new Date().toISOString() })
     .where(eq(tasks.id, taskId));
     
-  revalidatePath('/');
+  return { success: true };
 }
 
 export async function completePaymentAction(taskId: string) {
@@ -216,6 +225,6 @@ export async function completePaymentAction(taskId: string) {
         .set({ balance: freelancer.balance + task.budget })
         .where(eq(users.id, task.freelancerId));
   }
-
-  revalidatePath('/');
+  
+  return { success: true };
 }
