@@ -1,1 +1,1 @@
-// FILE INI HARUS DIHAPUS. Entry point Next.js ada di app/layout.tsx
+// File ini sudah tidak digunakan. Entry point aplikasi Next.js menggunakan App Router (app/layout.tsx).

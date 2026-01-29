@@ -1,1 +1,1 @@
-// FILE INI HARUS DIHAPUS. Gunakan <SignInButton /> dari Clerk.
+// File ini sudah tidak digunakan. Gunakan komponen dari @clerk/nextjs

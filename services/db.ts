@@ -1,1 +1,1 @@
-// FILE INI HARUS DIHAPUS. Gunakan Server Actions di app/actions.ts
+// File ini sudah tidak digunakan. Gunakan lib/db.ts
