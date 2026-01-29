@@ -3,7 +3,7 @@
 
 import { db, dbStatus } from '@/lib/db';
 import { users, tasks, messages } from '@/db/schema';
-import { eq, desc, asc, sql } from 'drizzle-orm';
+import { eq, desc, asc, sql, and } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
@@ -123,6 +123,7 @@ export async function initializeSystemAction() {
     // Basic migration for submission columns
     try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_url TEXT`); } catch (e) {}
     try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_note TEXT`); } catch (e) {}
+    try { await db.run(sql`ALTER TABLE tasks ADD COLUMN deadline TEXT`); } catch (e) {}
 
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
@@ -130,6 +131,7 @@ export async function initializeSystemAction() {
         title TEXT NOT NULL,
         description TEXT NOT NULL,
         budget INTEGER NOT NULL,
+        deadline TEXT,
         status TEXT DEFAULT 'open' NOT NULL,
         client_id TEXT NOT NULL,
         freelancer_id TEXT,
@@ -214,7 +216,7 @@ export async function registerUserAction(formData: any) {
 
 // --- Task Actions ---
 
-export async function createTaskAction(title: string, description: string, budget: number) {
+export async function createTaskAction(title: string, description: string, budget: number, deadline: string) {
   const user = await syncUser();
   if (!user || user.role !== 'client') throw new Error("Unauthorized");
 
@@ -223,8 +225,24 @@ export async function createTaskAction(title: string, description: string, budge
     title,
     description,
     budget,
+    deadline,
     clientId: user.id
   });
+  return { success: true };
+}
+
+export async function deleteTaskAction(taskId: string) {
+  const user = await syncUser();
+  if (!user || user.role !== 'client') throw new Error("Unauthorized");
+
+  // Hanya boleh hapus jika ownernya benar
+  await db.delete(tasks).where(
+    and(
+      eq(tasks.id, taskId),
+      eq(tasks.clientId, user.id)
+    )
+  );
+  
   return { success: true };
 }
 

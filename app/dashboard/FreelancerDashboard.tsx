@@ -9,7 +9,7 @@ import { useUser, UserButton } from "@clerk/nextjs";
 import { useTheme } from '@/context/ThemeContext';
 import { 
   Briefcase, Lock, Search, Smile, Star, MessageCircle, 
-  Home, Clock, Award, Sun, Moon, CheckCircle2, TrendingUp, Wallet, Send, Link as LinkIcon, Zap
+  Home, Clock, Award, Sun, Moon, CheckCircle2, TrendingUp, Wallet, Send, Link as LinkIcon, Zap, Calendar
 } from 'lucide-react';
 
 interface FreelancerDashboardProps {
@@ -133,28 +133,28 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
               </div>
            </BentoCard>
 
-           {/* Stats Grid */}
+           {/* Stats Grid - FIXED CONTRAST (Using div instead of BentoCard to enforce color) */}
            <div className="grid grid-cols-2 gap-4">
-              <BentoCard className="p-5 flex flex-col justify-between bg-emerald-500 text-white border-none shadow-emerald-200 hover:shadow-emerald-300">
+              <div className="p-5 flex flex-col justify-between bg-emerald-500 text-white rounded-[2rem] shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
                  <div className="bg-white/20 w-10 h-10 rounded-2xl flex items-center justify-center mb-2 backdrop-blur-md">
                      <Wallet className="w-5 h-5 text-white" />
                  </div>
                  <div>
-                    <p className="text-xs font-medium opacity-90 mb-1">Saldo Kamu</p>
+                    <p className="text-xs font-bold text-emerald-100 mb-1 opacity-90">Saldo Kamu</p>
                     <p className="text-lg font-extrabold truncate tracking-tight">{formatRupiah(currentUser.balance)}</p>
                  </div>
-              </BentoCard>
-              <BentoCard className="p-5 flex flex-col justify-between bg-amber-500 text-white border-none shadow-amber-200 hover:shadow-amber-300">
+              </div>
+              <div className="p-5 flex flex-col justify-between bg-amber-500 text-white rounded-[2rem] shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
                  <div className="bg-white/20 w-10 h-10 rounded-2xl flex items-center justify-center mb-2 backdrop-blur-md">
                      <Award className="w-5 h-5 text-white" />
                  </div>
                  <div>
-                    <p className="text-xs font-medium opacity-90 mb-1">Total Tugas</p>
+                    <p className="text-xs font-bold text-amber-100 mb-1 opacity-90">Total Tugas</p>
                     <p className="text-lg font-extrabold tracking-tight">
-                        {tasks.filter(t => t.status === 'completed').length || 0} <span className="text-xs font-normal opacity-80">Selesai</span>
+                        {tasks.filter(t => t.status === 'completed').length || 0} <span className="text-xs font-normal opacity-90">Selesai</span>
                     </p>
                  </div>
-              </BentoCard>
+              </div>
            </div>
 
            {/* Daily Quota */}
@@ -207,6 +207,11 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                                 {task.status === 'submitted' && <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider">UNDER REVIEW</span>}
                                 {task.status === 'completed' && <span className="bg-slate-200 text-slate-800 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider">DONE</span>}
                                 <span className="text-xs text-slate-500 dark:text-slate-400 py-1 flex items-center gap-1 font-semibold"><Clock className="w-3 h-3" /> {new Date(task.createdAt).toLocaleDateString()}</span>
+                                {task.deadline && (
+                                   <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-red-100">
+                                      <Calendar className="w-3 h-3" /> Due: {task.deadline}
+                                   </span>
+                                )}
                              </div>
                           </div>
                           
@@ -228,7 +233,10 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                               
                               {activeTab === 'active' && (
                                  <>
-                                    <Button variant="secondary" onClick={() => setChatTask(task)} className="w-11 h-11 p-0 rounded-xl flex items-center justify-center border-slate-300 dark:border-slate-600"><MessageCircle className="w-5 h-5 text-slate-600 dark:text-slate-300" /></Button>
+                                    <Button variant="secondary" onClick={() => setChatTask(task)} className="w-11 h-11 p-0 rounded-xl flex items-center justify-center border-slate-300 dark:border-slate-600">
+                                       {/* FIX: Set Icon color explicitly */}
+                                       <MessageCircle className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                                    </Button>
                                     {task.status === 'taken' ? (
                                        <Button onClick={() => setSubmitTaskModal(task)} className="bg-blue-600 text-white shadow-blue-500/30 px-5 h-11 rounded-xl">
                                           <Send className="w-4 h-4 mr-2" /> Submit

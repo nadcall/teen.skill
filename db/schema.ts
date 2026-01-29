@@ -21,13 +21,14 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
+  deadline: text("deadline"), // Kolom Deadline Baru
   status: text("status").notNull().default("open"), // open, taken, submitted, completed
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   takenAt: text("taken_at"),
-  submissionUrl: text("submission_url"), // Link hasil kerja
-  submissionNote: text("submission_note"), // Catatan dari freelancer
+  submissionUrl: text("submission_url"), 
+  submissionNote: text("submission_note"), 
 });
 
 export const messages = sqliteTable("messages", {

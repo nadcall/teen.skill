@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
-import { createTaskAction, getMyTasksAction, completePaymentAction, checkTaskSafetyAction } from '@/app/actions';
+import { createTaskAction, getMyTasksAction, completePaymentAction, checkTaskSafetyAction, deleteTaskAction } from '@/app/actions';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
 import { XenditPaymentModal } from '@/components/XenditPaymentModal';
 import { ChatWindow } from '@/components/ChatWindow';
-import { Plus, List, CheckCircle, Wallet, ShieldAlert, MessageCircle, Sparkles, FolderOpen, ExternalLink, Clock } from 'lucide-react';
+import { Plus, List, CheckCircle, Wallet, ShieldAlert, MessageCircle, Sparkles, FolderOpen, ExternalLink, Clock, Trash2, Calendar } from 'lucide-react';
 
 interface ClientDashboardProps {
   user: any;
@@ -23,13 +23,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingStage, setLoadingStage] = useState<'idle' | 'analyzing' | 'saving'>('idle');
-  const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
+  const [newTask, setNewTask] = useState({ title: '', description: '', budget: '', deadline: '' });
   const [aiError, setAiError] = useState<string | null>(null);
   
   // Interaction State
   const [paymentTask, setPaymentTask] = useState<any | null>(null);
   const [chatTask, setChatTask] = useState<any | null>(null);
   const [reviewTask, setReviewTask] = useState<any | null>(null); // For reviewing submission
+  const [deleteId, setDeleteId] = useState<string | null>(null); // Confirm delete
 
   const fetchTasks = async () => {
     const myTasks = await getMyTasksAction(user.id, 'client');
@@ -55,15 +56,22 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         return;
       }
       setLoadingStage('saving');
-      await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
+      await createTaskAction(newTask.title, newTask.description, Number(newTask.budget), newTask.deadline);
       setIsModalOpen(false);
-      setNewTask({ title: '', description: '', budget: '' });
+      setNewTask({ title: '', description: '', budget: '', deadline: '' });
       fetchTasks();
     } catch (error) {
       setAiError("Error sistem.");
     } finally {
       setLoadingStage('idle');
     }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!deleteId) return;
+    await deleteTaskAction(deleteId);
+    setDeleteId(null);
+    fetchTasks();
   };
 
   const handlePaymentSuccess = async () => {
@@ -157,6 +165,11 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                                 {task.status}
                              </span>
                              <span className="text-xs text-slate-500 font-medium">ID: {task.id.slice(0,6)}</span>
+                             {task.deadline && (
+                                <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-red-100">
+                                   <Calendar className="w-3 h-3" /> Due: {task.deadline}
+                                </span>
+                             )}
                           </div>
                           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{task.title}</h3>
                           <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 font-medium leading-relaxed">{task.description}</p>
@@ -166,10 +179,22 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                           <span className="text-2xl font-black text-slate-800 dark:text-white">{formatRupiah(task.budget)}</span>
                           
                           <div className="flex gap-2 w-full justify-end">
+                             
+                             {/* Delete Button (Only for Open/Completed) */}
+                             {(task.status === 'open' || task.status === 'completed') && (
+                               <button 
+                                 onClick={() => setDeleteId(task.id)}
+                                 className="h-10 w-10 rounded-xl flex items-center justify-center border border-red-200 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                 title="Hapus Tugas"
+                               >
+                                 <Trash2 className="w-5 h-5" />
+                               </button>
+                             )}
+
                              {/* Chat Button */}
                              {(task.status !== 'open') && (
                                 <Button variant="secondary" onClick={() => setChatTask(task)} className="h-10 w-10 p-0 rounded-xl flex items-center justify-center border-slate-300">
-                                   <MessageCircle className="w-5 h-5 text-slate-600" />
+                                   <MessageCircle className="w-5 h-5 text-slate-700" />
                                 </Button>
                              )}
 
@@ -207,7 +232,10 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
              onChange={e => setNewTask({...newTask, description: e.target.value})}
              required
           />
-          <Input label="Budget (Rp)" type="number" value={newTask.budget} onChange={e => setNewTask({...newTask, budget: e.target.value})} required min="10000" className="text-slate-900" />
+          <div className="grid grid-cols-2 gap-4">
+             <Input label="Budget (Rp)" type="number" value={newTask.budget} onChange={e => setNewTask({...newTask, budget: e.target.value})} required min="10000" className="text-slate-900" />
+             <Input label="Tenggang Waktu (Deadline)" type="date" value={newTask.deadline} onChange={e => setNewTask({...newTask, deadline: e.target.value})} required className="text-slate-900" />
+          </div>
           
           {aiError && <div className="text-red-500 text-sm font-bold bg-red-50 p-2 rounded-lg">{aiError}</div>}
           
@@ -249,7 +277,18 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
          )}
       </Modal>
 
-      {/* 3. Payment & Chat */}
+      {/* 3. Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Hapus Tugas?">
+         <div className="space-y-4">
+            <p className="text-slate-600 dark:text-slate-300">Apakah anda yakin ingin menghapus tugas ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div className="flex justify-end gap-2">
+               <Button variant="ghost" onClick={() => setDeleteId(null)}>Batal</Button>
+               <Button variant="danger" onClick={handleDeleteTask}>Hapus Permanen</Button>
+            </div>
+         </div>
+      </Modal>
+
+      {/* 4. Payment & Chat */}
       {paymentTask && (
         <XenditPaymentModal 
           isOpen={!!paymentTask} onClose={() => setPaymentTask(null)}
