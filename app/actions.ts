@@ -3,14 +3,13 @@
 
 import { db } from '@/lib/db';
 import { users, tasks } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Gemini AI ---
-// Inisialisasi aman: jika API Key kosong, jangan crash di awal, tapi handle saat dipanggil.
 const apiKey = process.env.API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
@@ -43,6 +42,48 @@ export async function checkTaskSafetyAction(title: string, description: string) 
   }
 }
 
+// --- Database Setup Action (Darurat/First Run) ---
+export async function setupDatabaseAction() {
+  try {
+    // Manual SQL Create Table untuk User yang tidak bisa akses terminal
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        clerk_id TEXT NOT NULL UNIQUE,
+        role TEXT NOT NULL,
+        name TEXT NOT NULL,
+        username TEXT NOT NULL,
+        age INTEGER,
+        parental_code TEXT,
+        balance INTEGER DEFAULT 0 NOT NULL,
+        task_quota_daily INTEGER DEFAULT 1 NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        budget INTEGER NOT NULL,
+        status TEXT DEFAULT 'open' NOT NULL,
+        client_id TEXT NOT NULL,
+        freelancer_id TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        taken_at TEXT,
+        FOREIGN KEY (client_id) REFERENCES users(id),
+        FOREIGN KEY (freelancer_id) REFERENCES users(id)
+      );
+    `);
+    
+    return { success: true, message: "Database berhasil dibuat!" };
+  } catch (error: any) {
+    console.error("Setup DB Error:", error);
+    return { success: false, message: error.message };
+  }
+}
+
 // --- User Actions ---
 
 export async function syncUser() {
@@ -50,7 +91,6 @@ export async function syncUser() {
     const { userId } = await auth();
     if (!userId) return null;
 
-    // Cek dulu apakah koneksi DB valid (minimal env var ada)
     if (!process.env.TURSO_DATABASE_URL) {
       throw new Error("TURSO_DATABASE_URL belum dikonfigurasi di .env.local");
     }
@@ -59,9 +99,8 @@ export async function syncUser() {
     return dbUser || null;
   } catch (error: any) {
     console.error("Sync User Error:", error);
-    // Jika error karena tabel tidak ada, beri pesan spesifik
-    if (error.message && error.message.includes("no such table")) {
-      throw new Error("Tabel database belum dibuat. Jalankan 'npm run db:push'.");
+    if (error.message && (error.message.includes("no such table") || error.message.includes("Prepare failed"))) {
+      throw new Error("Tabel database belum ditemukan. Klik tombol perbaikan di bawah.");
     }
     throw error;
   }
@@ -151,10 +190,8 @@ export async function completePaymentAction(taskId: string) {
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task || !task.freelancerId) return;
 
-  // Transaction ideally
   await db.update(tasks).set({ status: 'completed' }).where(eq(tasks.id, taskId));
   
-  // Update Balance
   const freelancer = await db.select().from(users).where(eq(users.id, task.freelancerId)).get();
   if(freelancer) {
       await db.update(users)

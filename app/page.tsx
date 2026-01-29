@@ -7,9 +7,9 @@ import { BackgroundWrapper } from '@/components/BackgroundWrapper';
 import { ClientDashboard } from '@/app/dashboard/ClientDashboard';
 import { FreelancerDashboard } from '@/app/dashboard/FreelancerDashboard';
 import { Onboarding } from '@/components/Onboarding';
-import { syncUser } from '@/app/actions';
+import { syncUser, setupDatabaseAction } from '@/app/actions';
 import { Button } from '@/components/Button';
-import { Rocket, ArrowRight, UserCheck, AlertTriangle } from 'lucide-react';
+import { Rocket, AlertTriangle, Database, RefreshCw } from 'lucide-react';
 import { LandingPage } from '@/components/LandingPage';
 
 export default function Home() {
@@ -17,6 +17,7 @@ export default function Home() {
   const [dbUser, setDbUser] = useState<any>(null);
   const [loadingDb, setLoadingDb] = useState(false);
   const [errorDb, setErrorDb] = useState<string | null>(null);
+  const [isFixingDb, setIsFixingDb] = useState(false);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -29,7 +30,6 @@ export default function Home() {
         })
         .catch((err) => {
           console.error("Gagal sinkronisasi user:", err);
-          // Tampilkan pesan error yang user-friendly
           setErrorDb(err.message || "Gagal terhubung ke database.");
         })
         .finally(() => {
@@ -37,6 +37,23 @@ export default function Home() {
         });
     }
   }, [isSignedIn]);
+
+  const handleFixDatabase = async () => {
+    setIsFixingDb(true);
+    try {
+      const res = await setupDatabaseAction();
+      if (res.success) {
+        alert("Database berhasil diperbaiki! Halaman akan dimuat ulang.");
+        window.location.reload();
+      } else {
+        alert("Gagal memperbaiki database: " + res.message);
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setIsFixingDb(false);
+    }
+  };
 
   // Tampilan Loading
   if (!isLoaded || (isSignedIn && loadingDb)) {
@@ -54,14 +71,31 @@ export default function Home() {
   if (isSignedIn && errorDb) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-red-50 dark:bg-slate-900 p-4">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl max-w-md text-center border border-red-100 dark:border-red-900">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl max-w-md text-center border border-red-100 dark:border-red-900 animate-fade-in-up">
            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Kendala Koneksi Database</h2>
-           <p className="text-gray-600 dark:text-gray-300 mb-6">{errorDb}</p>
-           <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-xs font-mono text-left mb-6 overflow-x-auto text-gray-700 dark:text-gray-400">
-             Tips: Pastikan TURSO_DATABASE_URL di .env.local benar dan jalankan "npm run db:push".
+           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Setup Database Diperlukan</h2>
+           <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
+             Sepertinya ini adalah deployment pertama. Tabel database belum ditemukan di Turso.
+           </p>
+           
+           <div className="flex flex-col gap-3">
+             <Button 
+                onClick={handleFixDatabase} 
+                isLoading={isFixingDb}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+             >
+                <Database className="w-4 h-4" />
+                {isFixingDb ? "Sedang Membuat Tabel..." : "Perbaiki Database (Otomatis)"}
+             </Button>
+             
+             <Button 
+                onClick={() => window.location.reload()} 
+                variant="ghost" 
+                className="w-full"
+             >
+               <RefreshCw className="w-4 h-4 mr-2" /> Coba Muat Ulang
+             </Button>
            </div>
-           <Button onClick={() => window.location.reload()}>Coba Lagi</Button>
         </div>
       </div>
     );
