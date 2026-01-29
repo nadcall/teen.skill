@@ -1,54 +1,45 @@
+
 import React from 'react';
 
 export const BackgroundWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden selection:bg-sky-200 selection:text-sky-900 bg-[#F0F9FF] dark:bg-[#0B1120]">
+    <div className="relative min-h-screen w-full overflow-hidden selection:bg-sky-200 selection:text-sky-900 bg-[#F8FAFC] dark:bg-[#0F172A] transition-colors duration-500">
       
       {/* SVG Background Layer */}
       <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none overflow-hidden">
         
-        {/* Slightly stronger pastel base */}
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-100 via-white to-purple-100 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 opacity-100" />
+        {/* Soft Pastel Gradient Base */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 opacity-100" />
 
-        {/* Animated SVG Shapes with Higher Opacity */}
-        <svg className="absolute top-0 left-0 w-full h-full opacity-80 dark:opacity-30" xmlns="http://www.w3.org/2000/svg">
+        {/* Animated Pastel Shapes */}
+        <svg className="absolute top-0 left-0 w-full h-full opacity-60 dark:opacity-20" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="bbblurry-filter" x="-100%" y="-100%" width="400%" height="400%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="70" x="0%" y="0%" width="100%" height="100%" in="SourceGraphic" edgeMode="none" result="blur"></feGaussianBlur>
+              <feGaussianBlur stdDeviation="80" x="0%" y="0%" width="100%" height="100%" in="SourceGraphic" edgeMode="none" result="blur"></feGaussianBlur>
             </filter>
           </defs>
           
-          {/* Shape 1: Top Left - Vivid Pastel Blue */}
+          {/* Shape 1: Baby Blue - Top Left */}
           <g filter="url(#bbblurry-filter)">
-            <ellipse rx="300" ry="300" cx="5%" cy="5%" fill="rgba(14, 165, 233, 0.25)" className="animate-float-slow"> 
+            <ellipse rx="400" ry="400" cx="10%" cy="0%" fill="rgba(186, 230, 253, 0.6)" className="animate-float-slow"> 
             </ellipse>
           </g>
 
-          {/* Shape 2: Bottom Right - Vivid Pastel Purple */}
+          {/* Shape 2: Soft Lavender - Bottom Right */}
           <g filter="url(#bbblurry-filter)">
-            <ellipse rx="350" ry="350" cx="95%" cy="95%" fill="rgba(168, 85, 247, 0.25)" className="animate-float-medium"> 
+            <ellipse rx="350" ry="350" cx="90%" cy="100%" fill="rgba(221, 214, 254, 0.5)" className="animate-float-medium"> 
             </ellipse>
           </g>
 
-          {/* Shape 3: Center Left - Vivid Teal */}
+          {/* Shape 3: Pale Cyan - Center */}
           <g filter="url(#bbblurry-filter)">
-            <ellipse rx="250" ry="250" cx="20%" cy="60%" fill="rgba(45, 212, 191, 0.2)" className="animate-float-fast"> 
-            </ellipse>
-          </g>
-             
-          {/* Shape 4: Top Right - Vivid Pink */}
-          <g filter="url(#bbblurry-filter)">
-            <ellipse rx="200" ry="200" cx="85%" cy="15%" fill="rgba(244, 114, 182, 0.2)" className="animate-pulse-slow"> 
+            <ellipse rx="250" ry="250" cx="50%" cy="50%" fill="rgba(204, 251, 241, 0.4)" className="animate-float-fast"> 
             </ellipse>
           </g>
         </svg>
 
-        {/* Moving Particles (Simulated with simple divs for extra "alive" feeling) */}
-        <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-yellow-300 rounded-full blur-sm opacity-60 animate-bounce"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-6 h-6 bg-pink-300 rounded-full blur-md opacity-50 animate-pulse"></div>
-
-        {/* Noise Texture */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-15 brightness-100 contrast-150 mix-blend-overlay"></div>
+        {/* Grid Texture Overlay (Subtle) */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
       </div>
       
       {/* Main Content */}

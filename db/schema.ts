@@ -20,7 +20,6 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
-  // Explicit definition to help inference
   status: text("status").notNull().default("open"), 
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
@@ -28,7 +27,16 @@ export const tasks = sqliteTable("tasks", {
   takenAt: text("taken_at"),
 });
 
+export const messages = sqliteTable("messages", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id").references(() => tasks.id).notNull(),
+  senderId: text("sender_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
+export type Message = typeof messages.$inferSelect;

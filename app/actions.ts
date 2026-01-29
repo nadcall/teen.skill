@@ -2,8 +2,8 @@
 'use server';
 
 import { db, dbStatus } from '@/lib/db';
-import { users, tasks } from '@/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { users, tasks, messages } from '@/db/schema';
+import { eq, desc, asc, sql } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
@@ -24,25 +24,17 @@ export async function checkSystemHealthAction() {
     message: ""
   };
 
-  // 1. Cek Apakah Config DB Loaded (Dari lib/db.ts)
   if (dbStatus.isConfigured) {
     status.env = true;
   } else {
     status.message = `Konfigurasi DB Error: ${dbStatus.error || "URL Missing"}`;
-    // Jangan return dulu, biarkan cek koneksi berjalan untuk memastikan
   }
 
-  // 2. Cek Koneksi Database Real (Ping)
   try {
-    // Jalankan query ringan
     await db.run(sql`SELECT 1`);
-    
-    // Jika kita dalam mode fallback (in-memory), SELECT 1 akan sukses, 
-    // tapi itu bukan koneksi Turso yang asli.
     if (dbStatus.isConfigured) {
        status.database = true;
     } else {
-       // Env error, tapi query sukses (berarti connect ke :memory:)
        status.database = false; 
     }
   } catch (error: any) {
@@ -52,18 +44,15 @@ export async function checkSystemHealthAction() {
     return status; 
   }
 
-  // 3. Cek AI (Optional)
   if (process.env.API_KEY) {
     status.ai = true;
   }
 
-  // 4. Jika Database OK, Pastikan Tabel Ada (Auto-Migration)
   if (status.database) {
     try {
        await initializeSystemAction();
     } catch (e) {
        console.error("Table Init Warning:", e);
-       // Lanjut saja
     }
   }
 
@@ -92,7 +81,6 @@ export async function checkTaskSafetyAction(title: string, description: string) 
       config: { responseMimeType: 'application/json' }
     });
     
-    // Using explicit property access as per SDK guidelines
     const text = response.text || '{}';
     return JSON.parse(text);
   } catch (e) {
@@ -108,7 +96,6 @@ export async function initializeSystemAction() {
   }
 
   try {
-    // 1. Users Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -124,7 +111,6 @@ export async function initializeSystemAction() {
       );
     `);
 
-    // 2. Tasks Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -138,6 +124,18 @@ export async function initializeSystemAction() {
         taken_at TEXT,
         FOREIGN KEY (client_id) REFERENCES users(id),
         FOREIGN KEY (freelancer_id) REFERENCES users(id)
+      );
+    `);
+
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS messages (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        sender_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (task_id) REFERENCES tasks(id),
+        FOREIGN KEY (sender_id) REFERENCES users(id)
       );
     `);
 
@@ -170,11 +168,10 @@ export async function syncUser() {
 
 export async function registerUserAction(formData: any) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized: Tidak ada sesi login.");
+  if (!userId) throw new Error("Unauthorized");
 
-  // Validasi manual sebelum insert
   if (!dbStatus.isConfigured) {
-     throw new Error("Database belum terkoneksi. Cek konfigurasi server.");
+     throw new Error("Database belum terkoneksi.");
   }
 
   try {
@@ -205,7 +202,6 @@ export async function createTaskAction(title: string, description: string, budge
   const user = await syncUser();
   if (!user || user.role !== 'client') throw new Error("Unauthorized");
 
-  // Drizzle automatically handles default values for 'status'
   await db.insert(tasks).values({
     id: uuidv4(),
     title,
@@ -244,8 +240,6 @@ export async function takeTaskAction(taskId: string, parentalCodeInput: string) 
     throw new Error("Kode Orang Tua Salah!");
   }
   
-  // CRITICAL FIX: Using 'as any' to bypass TypeScript type inference error
-  // The schema has these fields, but TS build sometimes fails to infer them correctly during update.
   await db.update(tasks)
     .set({ status: 'taken', freelancerId: user.id, takenAt: new Date().toISOString() } as any)
     .where(eq(tasks.id, taskId));
@@ -257,16 +251,49 @@ export async function completePaymentAction(taskId: string) {
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task || !task.freelancerId) return;
 
-  // CRITICAL FIX: Using 'as any' for task update
   await db.update(tasks).set({ status: 'completed' } as any).where(eq(tasks.id, taskId));
   
   const freelancer = await db.select().from(users).where(eq(users.id, task.freelancerId)).get();
   if(freelancer) {
-      // CRITICAL FIX: Using 'as any' for user update too
       await db.update(users)
         .set({ balance: freelancer.balance + task.budget } as any)
         .where(eq(users.id, task.freelancerId));
   }
   
   return { success: true };
+}
+
+// --- Chat Actions ---
+
+export async function sendMessageAction(taskId: string, content: string) {
+  const user = await syncUser();
+  if (!user) throw new Error("Unauthorized");
+
+  await db.insert(messages).values({
+    id: uuidv4(),
+    taskId,
+    senderId: user.id,
+    content
+  });
+  return { success: true };
+}
+
+export async function getMessagesAction(taskId: string) {
+  try {
+    const msgs = await db.select({
+      id: messages.id,
+      content: messages.content,
+      createdAt: messages.createdAt,
+      senderName: users.name,
+      senderId: users.id
+    })
+    .from(messages)
+    .leftJoin(users, eq(messages.senderId, users.id))
+    .where(eq(messages.taskId, taskId))
+    .orderBy(asc(messages.createdAt));
+    
+    return msgs;
+  } catch (e) {
+    return [];
+  }
 }

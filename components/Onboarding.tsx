@@ -4,21 +4,23 @@ import { User, Role } from '../types';
 import { registerUserAction } from '@/app/actions';
 import { Button } from './Button';
 import { Input } from './Input';
-import { Briefcase, User as UserIcon, GraduationCap, Building2 } from 'lucide-react';
+import { Briefcase, User as UserIcon, GraduationCap, Building2, LogOut } from 'lucide-react';
+import { useUser, SignOutButton } from "@clerk/nextjs";
 
 interface OnboardingProps {
   onComplete: (user: any) => void;
 }
 
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+  const { user } = useUser(); // Ambil data user dari Clerk
   const [step, setStep] = useState<'role' | 'details'>('role');
   const [role, setRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '',
-    username: '',
+    name: user?.fullName || '',
+    username: user?.username || '',
     age: '',
     parentalCode: '',
   });
@@ -42,15 +44,12 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       });
       
       if (result && result.success && result.user) {
-        // SUKSES: Jangan reload halaman! Langsung update state di parent.
-        // Ini mencegah error "Server Component Render" karena koneksi ulang.
         onComplete(result.user);
       } else {
         throw new Error('Gagal mendapatkan respon sukses dari server.');
       }
     } catch (err: any) {
       console.error("Registration Error:", err);
-      // Pesan error yang lebih membantu
       if (err.message && err.message.includes("TURSO")) {
          setError("Koneksi Database bermasalah. Hubungi Admin.");
       } else {
@@ -65,9 +64,20 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] animate-fade-in-up">
         <div className="max-w-2xl w-full">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3">Siapa Kamu?</h2>
-            <p className="text-gray-600 dark:text-gray-300 text-lg">Pilih peranmu untuk menyesuaikan pengalaman aplikasi.</p>
+          
+          {/* User Info & Logout option if wrong account */}
+          <div className="flex flex-col items-center justify-center mb-8">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-full border border-indigo-100 dark:border-indigo-800 flex items-center gap-3 mb-4">
+              <img src={user?.imageUrl} alt="Profile" className="w-6 h-6 rounded-full" />
+              <div className="text-xs">
+                 <span className="text-gray-500 dark:text-gray-400">Login sebagai: </span>
+                 <span className="font-bold text-gray-900 dark:text-white">{user?.primaryEmailAddress?.emailAddress}</span>
+              </div>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-2 text-center">Satu Langkah Lagi!</h2>
+            <p className="text-gray-600 dark:text-gray-300 text-center max-w-lg">
+              Akun Clerk berhasil dibuat. Sekarang, pilih peranmu untuk menyelesaikan profil TeenSkill.
+            </p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
@@ -84,7 +94,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 Saya berusia 13-17 tahun. Saya ingin mencari uang saku tambahan dengan mengerjakan tugas aman.
               </p>
               <div className="mt-6 flex items-center text-sky-600 font-bold text-sm">
-                Daftar sebagai Freelancer &rarr;
+                Lanjut sebagai Freelancer &rarr;
               </div>
             </button>
 
@@ -98,12 +108,20 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               </div>
               <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">Saya Pemberi Tugas</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
-                Saya UMKM, Orang Tua, atau Profesional. Saya mencari bantuan remaja berbakat untuk tugas ringan.
+                Saya UMKM, Orang Tua, atau Profesional. Saya mencari bantuan remaja berbakat.
               </p>
               <div className="mt-6 flex items-center text-purple-600 font-bold text-sm">
-                Daftar sebagai Klien &rarr;
+                Lanjut sebagai Klien &rarr;
               </div>
             </button>
+          </div>
+
+          <div className="mt-8 text-center">
+             <SignOutButton>
+               <button className="text-xs text-red-500 hover:underline flex items-center justify-center gap-1 mx-auto opacity-70 hover:opacity-100">
+                 <LogOut className="w-3 h-3" /> Bukan akun yang benar? Keluar
+               </button>
+             </SignOutButton>
           </div>
         </div>
       </div>
@@ -120,7 +138,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         
         <h2 className="text-2xl font-bold text-center mb-1 text-gray-900 dark:text-white">Lengkapi Profil</h2>
         <p className="text-center text-sm text-gray-500 mb-6">
-          Mendaftar sebagai <span className={`font-bold ${role === 'freelancer' ? 'text-sky-600' : 'text-purple-600'}`}>
+          Setup akun sebagai <span className={`font-bold ${role === 'freelancer' ? 'text-sky-600' : 'text-purple-600'}`}>
             {role === 'freelancer' ? 'Siswa Freelancer' : 'Pemberi Tugas'}
           </span>
         </p>
@@ -186,9 +204,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium border border-red-100 dark:border-red-900 text-center">{error}</div>}
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="ghost" onClick={() => setStep('role')}>Ganti Peran</Button>
+            <Button type="button" variant="ghost" onClick={() => setStep('role')}>Kembali</Button>
             <Button type="submit" className={`flex-1 ${role === 'freelancer' ? 'bg-sky-500 hover:bg-sky-600' : 'bg-purple-600 hover:bg-purple-700'}`} isLoading={loading}>
-              Selesai & Masuk
+              Simpan Profil
             </Button>
           </div>
         </form>

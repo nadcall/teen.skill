@@ -5,7 +5,8 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
 import { XenditPaymentModal } from '@/components/XenditPaymentModal';
-import { Plus, List, CheckCircle, Wallet, ShieldAlert } from 'lucide-react';
+import { ChatWindow } from '@/components/ChatWindow';
+import { Plus, List, CheckCircle, Wallet, ShieldAlert, MessageCircle } from 'lucide-react';
 
 interface ClientDashboardProps {
   user: any;
@@ -18,8 +19,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // State for Payment
   const [paymentTask, setPaymentTask] = useState<any | null>(null);
+  const [chatTask, setChatTask] = useState<any | null>(null);
 
   const fetchTasks = async () => {
     const myTasks = await getMyTasksAction(user.id, 'client');
@@ -28,10 +29,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
   useEffect(() => {
     fetchTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
-  // Helper untuk format Rupiah
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -47,7 +46,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     setAiError(null);
 
     try {
-      // 1. Cek Keamanan dengan AI
       const safetyCheck = await checkTaskSafetyAction(newTask.title, newTask.description);
       
       if (!safetyCheck.safe) {
@@ -56,10 +54,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         return;
       }
 
-      // 2. Jika aman, buat tugas
       await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
-      
-      // 3. Reset dan refresh data manual
       setIsModalOpen(false);
       setNewTask({ title: '', description: '', budget: '' });
       fetchTasks();
@@ -83,52 +78,60 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Dasbor Klien</h1>
-        <Button onClick={() => setIsModalOpen(true)} className="shadow-lg shadow-indigo-500/20">
+        <Button onClick={() => setIsModalOpen(true)} className="bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20">
           <Plus className="w-5 h-5" /> Buat Tugas Baru
         </Button>
       </div>
 
       <div className="grid gap-4">
         {tasks.length === 0 ? (
-          <div className="text-center py-16 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl shadow-sm border border-white/20 dark:border-gray-700">
-            <List className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Belum ada tugas yang diposting.</p>
+          <div className="text-center py-16 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 dark:border-slate-700">
+            <List className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+            <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">Belum ada tugas yang diposting.</p>
           </div>
         ) : (
           tasks.map(task => (
-            <div key={task.id} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/20 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:shadow-md">
+            <div key={task.id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-white/50 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:shadow-md">
               <div className="flex-1">
-                <h3 className="font-bold text-xl text-gray-900 dark:text-white">{task.title}</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-xl leading-relaxed">{task.description}</p>
+                <h3 className="font-bold text-xl text-slate-800 dark:text-white">{task.title}</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 max-w-xl leading-relaxed">{task.description}</p>
                 <div className="flex gap-3 mt-4 text-xs font-bold tracking-wide items-center">
                   <span className={`px-3 py-1 rounded-full border ${
                     task.status === 'open' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800' :
-                    task.status === 'taken' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' : 
+                    task.status === 'taken' ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800' : 
                     task.status === 'completed' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' :
-                    'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
+                    'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-600'
                   }`}>
                     {task.status.toUpperCase()}
                   </span>
-                  <span className="bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                  <span className="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                     Diposting: {new Date(task.createdAt).toLocaleDateString('id-ID')}
                   </span>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 text-left sm:text-right w-full sm:w-auto">
-                <span className="block text-3xl font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                <span className="block text-3xl font-bold text-sky-600 dark:text-sky-400 whitespace-nowrap">
                   {formatRupiah(task.budget)}
                 </span>
-                <span className="text-gray-400 text-sm font-medium mb-2">Anggaran</span>
                 
-                {/* Action Button for Payment */}
-                {(task.status === 'taken' || task.status === 'submitted') && (
-                  <Button 
-                    onClick={() => setPaymentTask(task)}
-                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-sm py-2"
-                  >
-                    <Wallet className="w-4 h-4" /> Bayar & Selesaikan
-                  </Button>
-                )}
+                <div className="flex gap-2 mt-2">
+                  {/* Chat Button */}
+                  {(task.status === 'taken' || task.status === 'submitted') && (
+                    <Button variant="secondary" onClick={() => setChatTask(task)} className="h-10 px-3">
+                      <MessageCircle className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                    </Button>
+                  )}
+
+                  {/* Payment Button */}
+                  {(task.status === 'taken' || task.status === 'submitted') && (
+                    <Button 
+                      onClick={() => setPaymentTask(task)}
+                      className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white text-sm py-2 h-10"
+                    >
+                      <Wallet className="w-4 h-4" /> Bayar
+                    </Button>
+                  )}
+                </div>
 
                 {task.status === 'completed' && (
                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400 font-bold text-sm">
@@ -141,7 +144,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         )}
       </div>
 
-      {/* Task Creation Modal */}
       <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setAiError(null); }} title="Buat Tugas Baru">
         <form onSubmit={handlePostTask} className="space-y-5">
           <Input 
@@ -152,10 +154,10 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             required
           />
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Deskripsi</label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Deskripsi</label>
             <textarea 
-              className="w-full px-4 py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none h-32 transition-all"
-              placeholder="Jelaskan detail pekerjaan yang dibutuhkan..."
+              className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none h-32 transition-all"
+              placeholder="Jelaskan detail pekerjaan..."
               value={newTask.description}
               onChange={e => setNewTask({...newTask, description: e.target.value})}
               required
@@ -183,14 +185,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
           <div className="pt-2 flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button type="submit" isLoading={isLoading}>
+            <Button type="submit" isLoading={isLoading} className="bg-sky-500 text-white">
               {isLoading ? 'Memeriksa Keamanan...' : 'Posting Tugas'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Xendit Payment Modal */}
+      {/* Payment Modal */}
       {paymentTask && (
         <XenditPaymentModal 
           isOpen={!!paymentTask}
@@ -198,6 +200,16 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
           amount={paymentTask.budget}
           taskTitle={paymentTask.title}
           onSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {/* Chat Modal */}
+      {chatTask && (
+        <ChatWindow
+          taskId={chatTask.id}
+          taskTitle={chatTask.title}
+          currentUserId={user.id}
+          onClose={() => setChatTask(null)}
         />
       )}
     </div>
