@@ -91,34 +91,30 @@ export async function syncUser() {
 
   if (!process.env.TURSO_DATABASE_URL) {
     console.error("Missing TURSO_DATABASE_URL");
-    return null;
+    return null; // Return null to allow frontend to handle gracefully
   }
 
   try {
-    // 1. Coba ambil user langsung (Jalur Cepat)
+    // 1. Coba ambil user
     const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
     return dbUser || null;
   } catch (error: any) {
-    // 2. Jika error karena tabel tidak ada, kita buatkan otomatis (Auto-Heal)
+    // 2. Jika error karena tabel tidak ada, buat tabelnya
     if (error.message && (error.message.includes("no such table") || error.message.includes("Prepare failed"))) {
-      console.log("Tables missing detected. Auto-healing...");
+      console.log("Tables missing. Creating tables...");
       await ensureTablesExist();
       
-      // 3. Coba ambil user lagi setelah tabel dibuat
-      try {
-        const dbUserRetry = await db.select().from(users).where(eq(users.clerkId, userId)).get();
-        return dbUserRetry || null;
-      } catch (retryError) {
-        console.error("Retry sync failed:", retryError);
-        return null;
-      }
+      // Setelah buat tabel, jangan fetch lagi, karena tabel pasti kosong.
+      // Langsung return null agar user diarahkan ke Onboarding untuk Insert data.
+      return null;
     }
+    
     console.error("Sync User Error:", error);
-    return null; // Return null agar frontend tidak crash, bisa tampilkan Onboarding/Loading
+    return null; // Return null agar tidak crash
   }
 }
 
-// Action manual ini masih disimpan sebagai cadangan, tapi jarang dipanggil
+// Action manual ini masih disimpan sebagai cadangan
 export async function setupDatabaseAction() {
   await ensureTablesExist();
   return { success: true, message: "Database siap!" };
@@ -172,7 +168,6 @@ export async function createTaskAction(title: string, description: string, budge
 
 export async function getOpenTasksAction() {
   try {
-    // Pastikan tabel ada agar tidak error saat fetching
     await ensureTablesExist(); 
     return await db.select().from(tasks).where(eq(tasks.status, 'open')).orderBy(desc(tasks.createdAt));
   } catch (e) {

@@ -15,34 +15,46 @@ import { LandingPage } from '@/components/LandingPage';
 export default function Home() {
   const { isSignedIn, user, isLoaded } = useUser();
   const [dbUser, setDbUser] = useState<any>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
+  // Default syncing true saat login agar transisi halus, tapi ada timeout
+  const [isSyncing, setIsSyncing] = useState(false); 
 
   useEffect(() => {
-    // Logika Sinkronisasi Otomatis
-    if (isSignedIn && !dbUser && !isSyncing) {
+    // Jalankan hanya jika user sudah login di Clerk tapi data DB belum ada
+    if (isLoaded && isSignedIn && !dbUser) {
       setIsSyncing(true);
       
-      syncUser()
-        .then((u) => {
+      const fetchData = async () => {
+        try {
+          // Panggil server action
+          const u = await syncUser();
           if (u) {
             setDbUser(u);
           }
-          // Jika u null (user baru atau db baru dibuat), 
-          // komponen Onboarding akan muncul otomatis di bawah.
-        })
-        .catch((err) => {
-          console.error("Sync silent error:", err);
-          // Kita diamkan saja errornya, biarkan user tetap di halaman ini.
-          // Karena di actions.ts kita sudah melakukan "Auto-Healing" database.
-        })
-        .finally(() => {
+          // Jika u == null, berarti user baru -> otomatis masuk ke render Onboarding di bawah
+        } catch (err) {
+          console.error("Sync error:", err);
+        } finally {
           setIsSyncing(false);
-        });
-    }
-  }, [isSignedIn, dbUser, isSyncing]);
+        }
+      };
 
-  // Tampilan Loading Awal (Clerk belum load atau sedang sync DB pertama kali)
-  if (!isLoaded || (isSignedIn && isSyncing && !dbUser)) {
+      fetchData();
+
+      // SAFETY TIMEOUT: Jika 5 detik database lemot/error, paksa berhenti loading
+      // agar user bisa melihat form onboarding/error, bukan stuck spinner.
+      const timeout = setTimeout(() => {
+        setIsSyncing((prev) => {
+          if (prev) console.warn("Sync timeout forced.");
+          return false;
+        });
+      }, 5000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoaded, isSignedIn, dbUser]);
+
+  // 1. Tampilan Loading Awal (Saat Clerk memuat atau DB sedang sync)
+  if (!isLoaded || (isSignedIn && isSyncing)) {
     return (
        <div className="min-h-screen flex items-center justify-center bg-sky-50 dark:bg-slate-900">
         <div className="flex flex-col items-center gap-4 animate-fade-in-up">
@@ -50,7 +62,9 @@ export default function Home() {
              <Rocket className="w-12 h-12 text-indigo-500 animate-bounce" />
              <div className="absolute -bottom-2 w-full h-2 bg-black/10 rounded-full blur-sm animate-pulse"></div>
            </div>
-           <div className="text-indigo-500 font-bold tracking-widest text-xs uppercase">Menyiapkan Ruang Kerjamu...</div>
+           <div className="text-indigo-500 font-bold tracking-widest text-xs uppercase">
+             {isSyncing ? "Menyiapkan Data..." : "Memuat..."}
+           </div>
         </div>
       </div>
     );
@@ -81,7 +95,7 @@ export default function Home() {
                    Halo, {dbUser.name.split(' ')[0]}
                  </span>
                  <div className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide">
-                   {dbUser.role}
+                   {dbUser.role === 'client' ? 'Pemberi Tugas' : 'Freelancer'}
                  </div>
                </div>
             )}
@@ -95,7 +109,7 @@ export default function Home() {
           <LandingPage />
         )}
 
-        {/* State 2: Sudah Login tapi Data DB Belum Ada -> Onboarding (Daftar Role) */}
+        {/* State 2: Sudah Login tapi Data DB Belum Ada -> Onboarding (PEMBEDA USER DISINI) */}
         {isSignedIn && !dbUser && !isSyncing && (
           <Onboarding onComplete={(u) => setDbUser(u)} />
         )}
