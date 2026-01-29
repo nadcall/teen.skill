@@ -1,10 +1,11 @@
+
 import { sql } from "drizzle-orm";
 import { text, integer, sqliteTable } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(), // We will use Clerk ID here
   clerkId: text("clerk_id").notNull().unique(),
-  role: text("role", { enum: ["freelancer", "client", "parent"] }).notNull(),
+  role: text("role").notNull(), // Removed enum to fix type inference issues
   name: text("name").notNull(),
   username: text("username").notNull(),
   age: integer("age"),
@@ -19,7 +20,7 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
-  status: text("status", { enum: ["open", "taken", "submitted", "completed"] }).default("open").notNull(),
+  status: text("status").default("open").notNull(), // Removed enum to fix type inference issues
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
