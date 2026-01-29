@@ -7,79 +7,153 @@ import { BackgroundWrapper } from '@/components/BackgroundWrapper';
 import { ClientDashboard } from '@/app/dashboard/ClientDashboard';
 import { FreelancerDashboard } from '@/app/dashboard/FreelancerDashboard';
 import { Onboarding } from '@/components/Onboarding';
-import { syncUser, initializeSystemAction } from '@/app/actions';
+import { syncUser, checkSystemHealthAction } from '@/app/actions';
 import { Button } from '@/components/Button';
-import { Rocket, Loader2, CheckCircle2 } from 'lucide-react';
+import { Rocket, Loader2, CheckCircle2, XCircle, Database, Server, UserCheck } from 'lucide-react';
 import { LandingPage } from '@/components/LandingPage';
 
 export default function Home() {
   const { isSignedIn, user, isLoaded } = useUser();
   
-  // State Global
-  const [systemReady, setSystemReady] = useState(false); // Apakah DB sudah siap?
-  const [dbUser, setDbUser] = useState<any>(null); // Data user dari DB
-  const [initStep, setInitStep] = useState("Menyiapkan ruang kerjamu..."); // Pesan loading
+  // State Diagnostik
+  const [health, setHealth] = useState({
+    checking: true,
+    env: 'pending' as 'pending' | 'success' | 'error',
+    database: 'pending' as 'pending' | 'success' | 'error',
+    clerk: 'pending' as 'pending' | 'success' | 'error',
+    errorMsg: ''
+  });
 
-  // 1. INITIALIZATION EFFECT (Jalan sekali saat aplikasi dibuka)
+  const [dbUser, setDbUser] = useState<any>(null);
+
+  // 1. DIAGNOSTIC BOOT (Jalan saat awal buka)
   useEffect(() => {
-    const bootSystem = async () => {
-      // Tunggu sebentar untuk efek visual yang halus
-      await new Promise(r => setTimeout(r, 800));
+    const runDiagnostics = async () => {
+      // Step 1: Cek Clerk Client Load
+      if (!isLoaded) return; // Tunggu Clerk loaded dulu
+      setHealth(h => ({ ...h, clerk: 'success' }));
 
-      setInitStep("Menghubungkan Database...");
-      const initResult = await initializeSystemAction();
-      
-      if (!initResult.success) {
-        console.error("System Init Failed:", initResult.message);
-        // Tetap lanjut agar user tidak stuck, tapi log error
+      // Step 2: Cek Server (Env & DB)
+      try {
+        const status = await checkSystemHealthAction();
+        
+        if (status.env && status.database) {
+           setHealth(h => ({ 
+             ...h, 
+             env: 'success', 
+             database: 'success', 
+             checking: false 
+           }));
+        } else {
+           setHealth(h => ({ 
+             ...h, 
+             env: status.env ? 'success' : 'error', 
+             database: status.database ? 'success' : 'error', 
+             checking: false,
+             errorMsg: status.message 
+           }));
+        }
+      } catch (e: any) {
+        setHealth(h => ({ 
+          ...h, 
+          database: 'error', 
+          checking: false, 
+          errorMsg: "Gagal menghubungi server: " + e.message 
+        }));
       }
-
-      setInitStep("Memuat akun...");
-      setSystemReady(true);
     };
 
-    bootSystem();
-  }, []);
+    if (isLoaded) {
+      runDiagnostics();
+    }
+  }, [isLoaded]);
 
-  // 2. USER SYNC EFFECT (Jalan setelah system ready & user login)
+  // 2. SYNC USER (Jalan setelah diagnostik sukses & user login)
   useEffect(() => {
-    if (systemReady && isLoaded && isSignedIn && !dbUser) {
+    if (!health.checking && health.database === 'success' && isSignedIn && !dbUser) {
       const fetchUserData = async () => {
         const u = await syncUser();
         if (u) setDbUser(u);
       };
       fetchUserData();
     }
-  }, [systemReady, isLoaded, isSignedIn, dbUser]);
+  }, [health.checking, health.database, isSignedIn, dbUser]);
 
-  // --- SPLASH SCREEN / LOADING SCREEN ---
-  // Tampilkan ini jika: Clerk belum load ATAU Sistem belum ready
-  if (!isLoaded || !systemReady) {
+  // --- DIAGNOSTIC SCREEN / LOADING ---
+  // Tampilkan jika: Clerk belum load ATAU Health Check belum selesai ATAU Ada Error Fatal
+  if (!isLoaded || health.checking || (health.database === 'error')) {
     return (
-       <div className="min-h-screen flex flex-col items-center justify-center bg-sky-50 dark:bg-slate-900 transition-colors duration-500">
-        <div className="flex flex-col items-center gap-6 animate-fade-in-up">
-           <div className="relative">
-             <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200 dark:shadow-none animate-bounce">
-                <Rocket className="w-10 h-10 text-indigo-500" />
-             </div>
-             {/* Loading Ping */}
-             <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
-             <div className="absolute -top-2 -right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-slate-900"></div>
-           </div>
+       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] dark:bg-[#020617] px-4">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-slate-800 animate-fade-in-up">
            
-           <div className="text-center space-y-2">
-             <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">TeenSkill</h2>
-             <div className="flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 text-sm font-medium bg-indigo-50 dark:bg-indigo-900/20 px-4 py-1.5 rounded-full">
-               <Loader2 className="w-3 h-3 animate-spin" />
-               {initStep}
+           <div className="flex flex-col items-center mb-8">
+             <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mb-4 animate-bounce">
+                <Rocket className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+             </div>
+             <h2 className="text-2xl font-bold text-slate-800 dark:text-white">System Check</h2>
+             <p className="text-slate-500 dark:text-slate-400 text-sm">Menyiapkan infrastruktur...</p>
+           </div>
+
+           <div className="space-y-4">
+             {/* Status 1: Auth Service */}
+             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
+               <div className="flex items-center gap-3">
+                 <UserCheck className="w-5 h-5 text-slate-500" />
+                 <span className="font-medium text-slate-700 dark:text-slate-200">Auth Service (Clerk)</span>
+               </div>
+               {isLoaded ? (
+                 <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-md flex items-center gap-1">
+                   <CheckCircle2 className="w-3 h-3" /> CONNECTED
+                 </span>
+               ) : (
+                 <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+               )}
+             </div>
+
+             {/* Status 2: Environment */}
+             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
+               <div className="flex items-center gap-3">
+                 <Server className="w-5 h-5 text-slate-500" />
+                 <span className="font-medium text-slate-700 dark:text-slate-200">System Config</span>
+               </div>
+               {health.env === 'pending' ? <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" /> :
+                health.env === 'success' ? <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> READY</span> :
+                <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md flex items-center gap-1"><XCircle className="w-3 h-3" /> MISSING</span>
+               }
+             </div>
+
+             {/* Status 3: Database */}
+             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
+               <div className="flex items-center gap-3">
+                 <Database className="w-5 h-5 text-slate-500" />
+                 <span className="font-medium text-slate-700 dark:text-slate-200">Turso Database</span>
+               </div>
+               {health.database === 'pending' ? <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" /> :
+                health.database === 'success' ? <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-md flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> CONNECTED</span> :
+                <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-md flex items-center gap-1"><XCircle className="w-3 h-3" /> FAILED</span>
+               }
              </div>
            </div>
+
+           {health.errorMsg && (
+             <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 text-xs rounded-xl border border-red-200 dark:border-red-800">
+               <strong>Diagnosa Error:</strong><br/>
+               {health.errorMsg}
+               <p className="mt-2">Silakan cek Environment Variables di Vercel.</p>
+             </div>
+           )}
+
+           {health.database === 'error' && (
+             <Button onClick={() => window.location.reload()} className="w-full mt-6 bg-slate-800 text-white hover:bg-slate-700">
+               Coba Lagi (Reload)
+             </Button>
+           )}
         </div>
       </div>
     );
   }
 
-  // --- MAIN APP ---
+  // --- MAIN APP (Hanya Render Jika Semua Check SUKSES) ---
   return (
     <BackgroundWrapper>
       {/* Navbar Simple */}

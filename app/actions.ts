@@ -8,11 +8,60 @@ import { auth } from '@clerk/nextjs/server';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 
-// --- Gemini AI ---
-const apiKey = process.env.API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+// --- Helper: Safe AI Initialization ---
+// Jangan inisialisasi di top-level untuk mencegah crash saat build jika API Key hilang
+const getAIClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+};
+
+// --- SYSTEM HEALTH CHECK (DIAGNOSTIK) ---
+export async function checkSystemHealthAction() {
+  const status = {
+    env: false,
+    database: false,
+    ai: false,
+    message: ""
+  };
+
+  // 1. Cek Environment Variables
+  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+    status.env = true;
+  } else {
+    status.message = "Environment Variable (Database URL) hilang.";
+    return status;
+  }
+
+  // 2. Cek Koneksi Database (Ping)
+  try {
+    // Jalankan query ringan 'SELECT 1'
+    await db.run(sql`SELECT 1`);
+    status.database = true;
+  } catch (error: any) {
+    console.error("Health Check DB Failed:", error);
+    status.message = `Koneksi Database Gagal: ${error.message}`;
+    return status; // Stop jika DB mati
+  }
+
+  // 3. Cek AI (Optional)
+  if (process.env.API_KEY) {
+    status.ai = true;
+  }
+
+  // 4. Jika Database OK, Pastikan Tabel Ada (Auto-Migration)
+  try {
+     await initializeSystemAction();
+  } catch (e) {
+     console.error("Table Init Warning:", e);
+     // Lanjut saja, mungkin tabel sudah ada
+  }
+
+  return status;
+}
 
 export async function checkTaskSafetyAction(title: string, description: string) {
+  const ai = getAIClient();
   if (!ai) return { safe: true, reason: "AI Check Skipped (No API Key)" };
 
   try {
@@ -41,16 +90,14 @@ export async function checkTaskSafetyAction(title: string, description: string) 
   }
 }
 
-// --- SYSTEM INITIALIZATION (PENTING: Dijalankan saat Splash Screen) ---
+// --- SYSTEM INITIALIZATION ---
 export async function initializeSystemAction() {
-  console.log("🚀 System Initialization Started...");
-  
   if (!process.env.TURSO_DATABASE_URL) {
     return { success: false, message: "Database URL not configured" };
   }
 
   try {
-    // 1. Cek Koneksi & Buat Tabel Users
+    // 1. Users Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -66,7 +113,7 @@ export async function initializeSystemAction() {
       );
     `);
 
-    // 2. Buat Tabel Tasks
+    // 2. Tasks Table
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -83,11 +130,10 @@ export async function initializeSystemAction() {
       );
     `);
 
-    console.log("✅ System Initialization Complete: Tables Ready.");
     return { success: true, message: "System Ready" };
   } catch (error: any) {
-    console.error("❌ System Init Failed:", error);
-    return { success: false, message: error.message };
+    console.error("Init Tables Failed:", error);
+    throw new Error(error.message);
   }
 }
 
@@ -98,13 +144,16 @@ export async function syncUser() {
     const { userId } = await auth();
     if (!userId) return null;
 
-    // Karena initializeSystemAction sudah dijalankan di awal, 
-    // kita bisa langsung query tanpa try-catch berlebihan untuk create table.
-    const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
-    return dbUser || null;
-    
-  } catch (error: any) {
-    console.error("Sync User Error:", error);
+    // Gunakan try-catch query spesifik agar tidak crash render
+    try {
+      const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
+      return dbUser || null;
+    } catch (dbError) {
+      console.error("SyncUser DB Error:", dbError);
+      return null;
+    }
+  } catch (authError) {
+    console.error("SyncUser Auth Error:", authError);
     return null; 
   }
 }
