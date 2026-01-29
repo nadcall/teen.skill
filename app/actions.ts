@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/db';
@@ -9,11 +10,12 @@ import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Gemini AI ---
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Inisialisasi aman: jika API Key kosong, jangan crash di awal, tapi handle saat dipanggil.
+const apiKey = process.env.API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export async function checkTaskSafetyAction(title: string, description: string) {
-  // Jika API Key tidak ada (misal di local tanpa env), kita bypass agar tidak error
-  if (!process.env.API_KEY) return { safe: true, reason: "Dev mode (No API Key)" };
+  if (!ai) return { safe: true, reason: "AI Check Skipped (No API Key)" };
 
   try {
     const response = await ai.models.generateContent({
@@ -37,8 +39,6 @@ export async function checkTaskSafetyAction(title: string, description: string) 
     return JSON.parse(text);
   } catch (e) {
     console.error("AI Check Error:", e);
-    // Fallback jika AI error, anggap aman atau block (tergantung kebijakan). 
-    // Di sini kita anggap aman sementara agar user tidak stuck.
     return { safe: true, reason: "AI Service Unavailable" };
   }
 }
@@ -46,32 +46,51 @@ export async function checkTaskSafetyAction(title: string, description: string) 
 // --- User Actions ---
 
 export async function syncUser() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  try {
+    const { userId } = await auth();
+    if (!userId) return null;
 
-  const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
-  return dbUser || null;
+    // Cek dulu apakah koneksi DB valid (minimal env var ada)
+    if (!process.env.TURSO_DATABASE_URL) {
+      throw new Error("TURSO_DATABASE_URL belum dikonfigurasi di .env.local");
+    }
+
+    const dbUser = await db.select().from(users).where(eq(users.clerkId, userId)).get();
+    return dbUser || null;
+  } catch (error: any) {
+    console.error("Sync User Error:", error);
+    // Jika error karena tabel tidak ada, beri pesan spesifik
+    if (error.message && error.message.includes("no such table")) {
+      throw new Error("Tabel database belum dibuat. Jalankan 'npm run db:push'.");
+    }
+    throw error;
+  }
 }
 
 export async function registerUserAction(formData: any) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const newUser = {
-    id: uuidv4(),
-    clerkId: userId,
-    name: formData.name,
-    username: formData.username,
-    role: formData.role,
-    age: parseInt(formData.age) || 0,
-    parentalCode: formData.parentalCode || null,
-    balance: 0,
-    taskQuotaDaily: 1,
-  };
+  try {
+    const newUser = {
+      id: uuidv4(),
+      clerkId: userId,
+      name: formData.name,
+      username: formData.username,
+      role: formData.role,
+      age: parseInt(formData.age) || 0,
+      parentalCode: formData.parentalCode || null,
+      balance: 0,
+      taskQuotaDaily: 1,
+    };
 
-  await db.insert(users).values(newUser);
-  revalidatePath('/');
-  return newUser;
+    await db.insert(users).values(newUser);
+    revalidatePath('/');
+    return newUser;
+  } catch (error: any) {
+    console.error("Register Error:", error);
+    throw new Error(error.message || "Gagal mendaftarkan user.");
+  }
 }
 
 // --- Task Actions ---
@@ -92,14 +111,24 @@ export async function createTaskAction(title: string, description: string, budge
 }
 
 export async function getOpenTasksAction() {
-  return await db.select().from(tasks).where(eq(tasks.status, 'open')).orderBy(desc(tasks.createdAt));
+  try {
+    return await db.select().from(tasks).where(eq(tasks.status, 'open')).orderBy(desc(tasks.createdAt));
+  } catch (e) {
+    console.error("Get Open Tasks Error:", e);
+    return [];
+  }
 }
 
 export async function getMyTasksAction(userId: string, role: string) {
-  if (role === 'client') {
-    return await db.select().from(tasks).where(eq(tasks.clientId, userId)).orderBy(desc(tasks.createdAt));
-  } else {
-    return await db.select().from(tasks).where(eq(tasks.freelancerId, userId)).orderBy(desc(tasks.createdAt));
+  try {
+    if (role === 'client') {
+      return await db.select().from(tasks).where(eq(tasks.clientId, userId)).orderBy(desc(tasks.createdAt));
+    } else {
+      return await db.select().from(tasks).where(eq(tasks.freelancerId, userId)).orderBy(desc(tasks.createdAt));
+    }
+  } catch (e) {
+    console.error("Get My Tasks Error:", e);
+    return [];
   }
 }
 
@@ -110,8 +139,6 @@ export async function takeTaskAction(taskId: string, parentalCodeInput: string) 
   if (user.parentalCode !== parentalCodeInput) {
     throw new Error("Kode Orang Tua Salah!");
   }
-
-  // Check Quota logic here (omitted for brevity, assume check passed)
   
   await db.update(tasks)
     .set({ status: 'taken', freelancerId: user.id, takenAt: new Date().toISOString() })
