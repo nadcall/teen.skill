@@ -3,43 +3,42 @@ import React from 'react';
 
 export const BackgroundWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden selection:bg-sky-200 selection:text-sky-900 bg-[#F8FAFC] dark:bg-[#0F172A] transition-colors duration-500">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#F0F4F8] dark:bg-[#0B1120] transition-colors duration-500 perspective-1000">
       
-      {/* SVG Background Layer */}
+      {/* 3D Animated Background Layer */}
       <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none overflow-hidden">
         
-        {/* Soft Pastel Gradient Base */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 opacity-100" />
+        {/* Base Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-[#0B1120]" />
 
-        {/* Animated Pastel Shapes */}
-        <svg className="absolute top-0 left-0 w-full h-full opacity-60 dark:opacity-20" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <filter id="bbblurry-filter" x="-100%" y="-100%" width="400%" height="400%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-              <feGaussianBlur stdDeviation="80" x="0%" y="0%" width="100%" height="100%" in="SourceGraphic" edgeMode="none" result="blur"></feGaussianBlur>
-            </filter>
-          </defs>
-          
-          {/* Shape 1: Baby Blue - Top Left */}
-          <g filter="url(#bbblurry-filter)">
-            <ellipse rx="400" ry="400" cx="10%" cy="0%" fill="rgba(186, 230, 253, 0.6)" className="animate-float-slow"> 
-            </ellipse>
-          </g>
+        {/* 3D Orb 1 (Big Blue) */}
+        <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full animate-float-slow opacity-80 mix-blend-multiply dark:mix-blend-normal dark:opacity-20"
+             style={{
+               background: 'radial-gradient(circle at 30% 30%, #BAE6FD, #38BDF8)',
+               boxShadow: 'inset -20px -20px 60px rgba(0,0,0,0.1), inset 10px 10px 40px rgba(255,255,255,0.8), 0 20px 50px rgba(56, 189, 248, 0.3)'
+             }}>
+        </div>
 
-          {/* Shape 2: Soft Lavender - Bottom Right */}
-          <g filter="url(#bbblurry-filter)">
-            <ellipse rx="350" ry="350" cx="90%" cy="100%" fill="rgba(221, 214, 254, 0.5)" className="animate-float-medium"> 
-            </ellipse>
-          </g>
+        {/* 3D Orb 2 (Purple) */}
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full animate-float-medium opacity-80 mix-blend-multiply dark:mix-blend-normal dark:opacity-20"
+             style={{
+               background: 'radial-gradient(circle at 30% 30%, #E9D5FF, #A855F7)',
+               boxShadow: 'inset -20px -20px 60px rgba(0,0,0,0.1), inset 10px 10px 40px rgba(255,255,255,0.8), 0 20px 50px rgba(168, 85, 247, 0.3)'
+             }}>
+        </div>
 
-          {/* Shape 3: Pale Cyan - Center */}
-          <g filter="url(#bbblurry-filter)">
-            <ellipse rx="250" ry="250" cx="50%" cy="50%" fill="rgba(204, 251, 241, 0.4)" className="animate-float-fast"> 
-            </ellipse>
-          </g>
-        </svg>
+        {/* 3D Cube/Shape (Teal) - Center Floating */}
+        <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-[60px] animate-float-fast opacity-60 mix-blend-multiply dark:mix-blend-normal dark:opacity-10 rotate-12"
+             style={{
+               background: 'radial-gradient(circle at 30% 30%, #CCFBF1, #2DD4BF)',
+               boxShadow: 'inset -10px -10px 40px rgba(0,0,0,0.05), inset 10px 10px 30px rgba(255,255,255,0.9), 0 20px 40px rgba(45, 212, 191, 0.2)'
+             }}>
+        </div>
+        
+        {/* Floating Particles */}
+        <div className="absolute top-[20%] right-[20%] w-8 h-8 rounded-full bg-yellow-300 blur-sm animate-pulse-slow"></div>
+        <div className="absolute bottom-[30%] left-[10%] w-12 h-12 rounded-full bg-pink-300 blur-md animate-bounce"></div>
 
-        {/* Grid Texture Overlay (Subtle) */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
       </div>
       
       {/* Main Content */}

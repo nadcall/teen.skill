@@ -61,10 +61,7 @@ export async function checkSystemHealthAction() {
 
 export async function checkTaskSafetyAction(title: string, description: string) {
   const ai = getAIClient();
-  // Jika tidak ada API Key, langsung anggap aman (Bypass)
   if (!ai) return { safe: true, reason: "AI Check Skipped (No API Key)" };
-
-  // Batas waktu tunggu AI (5 Detik)
   const TIMEOUT_MS = 5000; 
 
   try {
@@ -85,7 +82,6 @@ export async function checkTaskSafetyAction(title: string, description: string) 
       config: { responseMimeType: 'application/json' }
     });
 
-    // Promise Race: Mana yang lebih cepat, AI selesai atau Timer 5 detik habis
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error("AI_TIMEOUT")), TIMEOUT_MS)
     );
@@ -97,7 +93,6 @@ export async function checkTaskSafetyAction(title: string, description: string) 
 
   } catch (e: any) {
     console.error("AI Check Error/Timeout:", e.message);
-    // FAIL OPEN: Jika AI error atau timeout, anggap aman agar user tidak menunggu selamanya.
     return { safe: true, reason: "AI Service Busy (Auto-Approved by System)" };
   }
 }
@@ -109,7 +104,6 @@ export async function initializeSystemAction() {
   }
 
   try {
-    // Add xp column if logic allows migration, for now using create if not exists
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -126,12 +120,9 @@ export async function initializeSystemAction() {
       );
     `);
 
-    // Basic migration check for existing tables (manual simple check)
-    try {
-        await db.run(sql`ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0 NOT NULL`);
-    } catch (e) {
-        // Ignore if column exists
-    }
+    // Basic migration for submission columns
+    try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_url TEXT`); } catch (e) {}
+    try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_note TEXT`); } catch (e) {}
 
     await db.run(sql`
       CREATE TABLE IF NOT EXISTS tasks (
@@ -144,6 +135,8 @@ export async function initializeSystemAction() {
         freelancer_id TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         taken_at TEXT,
+        submission_url TEXT,
+        submission_note TEXT,
         FOREIGN KEY (client_id) REFERENCES users(id),
         FOREIGN KEY (freelancer_id) REFERENCES users(id)
       );
@@ -270,6 +263,29 @@ export async function takeTaskAction(taskId: string, parentalCodeInput: string) 
   return { success: true };
 }
 
+export async function submitTaskAction(taskId: string, submissionUrl: string, submissionNote: string) {
+  const user = await syncUser();
+  if (!user || user.role !== 'freelancer') throw new Error("Unauthorized");
+
+  await db.update(tasks)
+    .set({ 
+      status: 'submitted', 
+      submissionUrl, 
+      submissionNote 
+    } as any)
+    .where(eq(tasks.id, taskId));
+
+  // Auto send message to chat
+  await db.insert(messages).values({
+    id: uuidv4(),
+    taskId,
+    senderId: user.id,
+    content: `[SYSTEM] Tugas diserahkan.\nLink: ${submissionUrl}\nCatatan: ${submissionNote}`
+  });
+
+  return { success: true };
+}
+
 export async function completePaymentAction(taskId: string) {
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task || !task.freelancerId) return;
@@ -278,11 +294,10 @@ export async function completePaymentAction(taskId: string) {
   
   const freelancer = await db.select().from(users).where(eq(users.id, task.freelancerId)).get();
   if(freelancer) {
-      // Add Balance + Add 50 XP per task
       await db.update(users)
         .set({ 
           balance: freelancer.balance + task.budget,
-          xp: (freelancer.xp || 0) + 50 
+          xp: (freelancer.xp || 0) + 100 // More XP for completion
         } as any)
         .where(eq(users.id, task.freelancerId));
   }
