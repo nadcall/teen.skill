@@ -12,9 +12,9 @@ interface ClientDashboardProps {
   user: any;
 }
 
-// Bento Grid Card Component
+// Bento Grid Card Component - Opacity increased to 90% for readability
 const BentoCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/50 dark:border-slate-700 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 ${className}`}>
+  <div className={`bg-white/90 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 ${className}`}>
     {children}
   </div>
 );
@@ -87,7 +87,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-4 px-2">
          <div>
             <h1 className="text-4xl font-black text-slate-800 dark:text-white tracking-tight">Dashboard Klien</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Kelola proyek dan rekrut talenta muda.</p>
+            <p className="text-slate-600 dark:text-slate-400 mt-1 font-medium">Kelola proyek dan rekrut talenta muda.</p>
          </div>
          <Button onClick={() => setIsModalOpen(true)} className="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/20 px-6 py-4 rounded-2xl transform hover:scale-105 transition-transform">
            <Plus className="w-5 h-5" /> Posting Tugas Baru
@@ -99,7 +99,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         
         {/* COL 1: STATS & ACTIONS (Left Sidebar style) */}
         <div className="md:col-span-1 space-y-6">
-           <BentoCard className="bg-gradient-to-br from-purple-500 to-indigo-600 border-none text-white">
+           <BentoCard className="bg-gradient-to-br from-purple-600 to-indigo-700 border-none text-white shadow-lg shadow-purple-200 dark:shadow-none">
               <p className="text-purple-100 font-medium mb-1">Total Pengeluaran</p>
               <h2 className="text-3xl font-extrabold">{formatRupiah(totalSpent)}</h2>
               <div className="mt-4 flex gap-2">
@@ -114,13 +114,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                  <Clock className="w-5 h-5 text-orange-500" /> Menunggu Review
               </h3>
               {reviewCount === 0 ? (
-                 <p className="text-sm text-slate-400">Tidak ada tugas yang perlu direview.</p>
+                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Tidak ada tugas yang perlu direview.</p>
               ) : (
                  <div className="space-y-3">
                     {tasks.filter(t => t.status === 'submitted').map(t => (
                        <div key={t.id} className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-100 dark:border-orange-800/50 cursor-pointer hover:bg-orange-100 transition" onClick={() => setReviewTask(t)}>
                           <p className="font-bold text-sm text-slate-800 dark:text-white truncate">{t.title}</p>
-                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Klik untuk review & bayar</p>
+                          <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-bold">Klik untuk review & bayar</p>
                        </div>
                     ))}
                  </div>
@@ -132,13 +132,13 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         <div className="md:col-span-3">
            <div className="grid gap-4">
               {tasks.length === 0 ? (
-                 <div className="bg-white/60 dark:bg-slate-800/60 rounded-3xl p-12 text-center border border-dashed border-slate-300 dark:border-slate-700">
+                 <div className="bg-white/90 dark:bg-slate-800/60 rounded-3xl p-12 text-center border border-dashed border-slate-300 dark:border-slate-700 shadow-sm">
                     <List className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-lg text-slate-500">Belum ada tugas.</p>
+                    <p className="text-lg text-slate-500 font-medium">Belum ada tugas.</p>
                  </div>
               ) : (
                  tasks.map(task => (
-                    <div key={task.id} className="group bg-white/70 dark:bg-slate-800/70 p-6 rounded-3xl border border-white/50 dark:border-slate-700 hover:shadow-lg transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden">
+                    <div key={task.id} className="group bg-white/90 dark:bg-slate-800/70 p-6 rounded-3xl border border-white/50 dark:border-slate-700 hover:shadow-lg transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden">
                        
                        {/* Status Stripe */}
                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
@@ -156,10 +156,10 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                              }`}>
                                 {task.status}
                              </span>
-                             <span className="text-xs text-slate-400">ID: {task.id.slice(0,6)}</span>
+                             <span className="text-xs text-slate-500 font-medium">ID: {task.id.slice(0,6)}</span>
                           </div>
                           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{task.title}</h3>
-                          <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2">{task.description}</p>
+                          <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 font-medium leading-relaxed">{task.description}</p>
                        </div>
 
                        <div className="flex flex-col items-end gap-3 min-w-[150px]">
@@ -168,7 +168,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                           <div className="flex gap-2 w-full justify-end">
                              {/* Chat Button */}
                              {(task.status !== 'open') && (
-                                <Button variant="secondary" onClick={() => setChatTask(task)} className="h-10 w-10 p-0 rounded-xl flex items-center justify-center">
+                                <Button variant="secondary" onClick={() => setChatTask(task)} className="h-10 w-10 p-0 rounded-xl flex items-center justify-center border-slate-300">
                                    <MessageCircle className="w-5 h-5 text-slate-600" />
                                 </Button>
                              )}
@@ -199,15 +199,15 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
       {/* 1. Create Task Modal */}
       <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setAiError(null); }} title="Posting Tugas">
         <form onSubmit={handlePostTask} className="space-y-4">
-          <Input label="Judul" placeholder="Desain Logo..." value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} required />
+          <Input label="Judul" placeholder="Desain Logo..." value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} required className="text-slate-900" />
           <textarea 
-             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl h-32 focus:ring-2 focus:ring-sky-500 outline-none"
+             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl h-32 focus:ring-2 focus:ring-sky-500 outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
              placeholder="Deskripsi detail..."
              value={newTask.description}
              onChange={e => setNewTask({...newTask, description: e.target.value})}
              required
           />
-          <Input label="Budget (Rp)" type="number" value={newTask.budget} onChange={e => setNewTask({...newTask, budget: e.target.value})} required min="10000" />
+          <Input label="Budget (Rp)" type="number" value={newTask.budget} onChange={e => setNewTask({...newTask, budget: e.target.value})} required min="10000" className="text-slate-900" />
           
           {aiError && <div className="text-red-500 text-sm font-bold bg-red-50 p-2 rounded-lg">{aiError}</div>}
           

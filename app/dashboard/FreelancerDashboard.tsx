@@ -17,7 +17,7 @@ interface FreelancerDashboardProps {
 }
 
 const BentoCard = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
-  <div onClick={onClick} className={`bg-white/70 dark:bg-slate-800/60 backdrop-blur-xl border border-white/60 dark:border-slate-700 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${className}`}>
+  <div onClick={onClick} className={`bg-white/90 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${className}`}>
     {children}
   </div>
 );
@@ -87,17 +87,17 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
     <div className="pt-32 pb-24 px-4 min-h-screen w-full max-w-[1600px] mx-auto">
       
       {/* DESKTOP NAV (Floating) */}
-      <nav className="hidden md:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/50 dark:border-slate-700 shadow-2xl shadow-indigo-500/10 rounded-full px-6 py-2 items-center gap-2 animate-fade-in-up transition-all hover:scale-105">
+      <nav className="hidden md:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white/95 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/50 dark:border-slate-700 shadow-2xl shadow-indigo-500/10 rounded-full px-6 py-2 items-center gap-2 animate-fade-in-up transition-all hover:scale-105">
          <div className="w-10 h-10 bg-gradient-to-tr from-sky-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-4 shadow-lg shadow-sky-500/30">
             TS
          </div>
          {['market', 'active', 'history'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-slate-800 text-white shadow-lg shadow-slate-900/20' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
+            <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}>
                {tab === 'market' ? 'Bursa Kerja' : tab === 'active' ? 'Tugasku' : 'Riwayat'}
             </button>
          ))}
-         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-2" />
-         <button onClick={toggleTheme} className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition text-slate-500">
+         <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-2" />
+         <button onClick={toggleTheme} className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition text-slate-600 dark:text-slate-400">
              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
          </button>
          <div className="pl-2">
@@ -111,24 +111,24 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
         {/* LEFT COLUMN: PROFILE & STATS (Span 3 or 4) */}
         <div className="md:col-span-4 lg:col-span-3 space-y-6">
            {/* Profile Card */}
-           <BentoCard className="relative overflow-hidden group border-none bg-gradient-to-br from-white to-sky-50 dark:from-slate-800 dark:to-slate-900">
+           <BentoCard className="relative overflow-hidden group border-none bg-white dark:bg-slate-900 shadow-xl">
               <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-sky-400 to-indigo-500 opacity-20" />
               <div className="relative z-10 flex flex-col items-center text-center mt-4">
                  <div className="p-1 rounded-[2rem] bg-white dark:bg-slate-900 shadow-xl mb-4">
                      <img src={clerkUser?.imageUrl} className="w-24 h-24 rounded-[1.8rem]" alt="Profile" />
                  </div>
                  <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{currentUser.name.split(' ')[0]}</h2>
-                 <p className="text-sm text-slate-500 font-medium">@{currentUser.username}</p>
+                 <p className="text-sm text-slate-600 dark:text-slate-400 font-bold">@{currentUser.username}</p>
                  
                  <div className="mt-6 w-full">
-                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                    <div className="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
                        <span>Level {level}</span>
                        <span>{currentUser.xp} XP</span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-slate-600">
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden border border-slate-300 dark:border-slate-600">
                        <div className="bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 h-full rounded-full transition-all duration-1000" style={{ width: `${progressToNextLevel}%` }} />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1 text-right">{100 - progressToNextLevel} XP to Level {level + 1}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-1 text-right">{100 - progressToNextLevel} XP to Level {level + 1}</p>
                  </div>
               </div>
            </BentoCard>
@@ -140,7 +140,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                      <Wallet className="w-5 h-5 text-white" />
                  </div>
                  <div>
-                    <p className="text-xs font-medium opacity-80 mb-1">Saldo Kamu</p>
+                    <p className="text-xs font-medium opacity-90 mb-1">Saldo Kamu</p>
                     <p className="text-lg font-extrabold truncate tracking-tight">{formatRupiah(currentUser.balance)}</p>
                  </div>
               </BentoCard>
@@ -149,9 +149,9 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                      <Award className="w-5 h-5 text-white" />
                  </div>
                  <div>
-                    <p className="text-xs font-medium opacity-80 mb-1">Total Tugas</p>
+                    <p className="text-xs font-medium opacity-90 mb-1">Total Tugas</p>
                     <p className="text-lg font-extrabold tracking-tight">
-                        {tasks.filter(t => t.status === 'completed').length || 0} <span className="text-xs font-normal opacity-70">Selesai</span>
+                        {tasks.filter(t => t.status === 'completed').length || 0} <span className="text-xs font-normal opacity-80">Selesai</span>
                     </p>
                  </div>
               </BentoCard>
@@ -161,10 +161,10 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
            <BentoCard className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none relative overflow-hidden">
                <Zap className="absolute -bottom-4 -right-4 w-24 h-24 text-white opacity-10 rotate-12" />
                <h3 className="font-bold text-lg mb-1">Quota Harian</h3>
-               <p className="text-indigo-100 text-sm mb-4">Sisa kesempatan ambil tugas hari ini.</p>
+               <p className="text-indigo-100 text-sm mb-4 font-medium">Sisa kesempatan ambil tugas hari ini.</p>
                <div className="flex items-end gap-1">
                   <span className="text-4xl font-black">{currentUser.taskQuotaDaily}</span>
-                  <span className="text-sm mb-1 opacity-70">/ 1 Tugas</span>
+                  <span className="text-sm mb-1 opacity-80 font-bold">/ 1 Tugas</span>
                </div>
            </BentoCard>
         </div>
@@ -176,7 +176,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                  <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
                     {activeTab === 'market' ? 'Bursa Kerja' : activeTab === 'active' ? 'Proyek Aktif' : 'Riwayat'}
                  </h1>
-                 <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                 <p className="text-slate-600 dark:text-slate-400 mt-1 font-semibold">
                     {activeTab === 'market' ? 'Temukan peluang baru dan tingkatkan skillmu.' : 'Fokus selesaikan tugasmu tepat waktu.'}
                  </p>
               </div>
@@ -185,12 +185,12 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {loading ? [1,2,3,4].map(i => <div key={i} className="h-48 bg-white/50 rounded-[2rem] animate-pulse" />) :
               tasks.length === 0 ? (
-                 <div className="col-span-2 py-24 text-center bg-white/40 dark:bg-slate-800/40 rounded-[2rem] border-2 border-dashed border-slate-300 dark:border-slate-700">
+                 <div className="col-span-2 py-24 text-center bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-[2rem] border-2 border-dashed border-slate-300 dark:border-slate-700">
                     <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Smile className="w-10 h-10 text-slate-400" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">Belum ada tugas saat ini.</h3>
-                    <p className="text-slate-400">Coba cek kembali nanti ya!</p>
+                    <p className="text-slate-500 font-medium">Coba cek kembali nanti ya!</p>
                  </div>
               ) : (
                  tasks.map(task => (
@@ -202,16 +202,16 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                        <div>
                           <div className="flex justify-between items-start mb-4">
                              <div className="flex flex-wrap gap-2">
-                                {task.status === 'open' && <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">OPEN</span>}
-                                {task.status === 'taken' && <span className="bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">ON PROGRESS</span>}
-                                {task.status === 'submitted' && <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">UNDER REVIEW</span>}
-                                {task.status === 'completed' && <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider">DONE</span>}
-                                <span className="text-xs text-slate-400 py-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(task.createdAt).toLocaleDateString()}</span>
+                                {task.status === 'open' && <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider">OPEN</span>}
+                                {task.status === 'taken' && <span className="bg-sky-100 text-sky-800 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider">ON PROGRESS</span>}
+                                {task.status === 'submitted' && <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider">UNDER REVIEW</span>}
+                                {task.status === 'completed' && <span className="bg-slate-200 text-slate-800 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider">DONE</span>}
+                                <span className="text-xs text-slate-500 dark:text-slate-400 py-1 flex items-center gap-1 font-semibold"><Clock className="w-3 h-3" /> {new Date(task.createdAt).toLocaleDateString()}</span>
                              </div>
                           </div>
                           
                           <h3 className="font-extrabold text-xl mb-3 text-slate-900 dark:text-white leading-tight group-hover:text-sky-600 transition-colors">{task.title}</h3>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-6">{task.description}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed mb-6 font-medium">{task.description}</p>
                        </div>
 
                        <div className="flex items-end justify-between mt-auto">
@@ -228,13 +228,13 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                               
                               {activeTab === 'active' && (
                                  <>
-                                    <Button variant="secondary" onClick={() => setChatTask(task)} className="w-11 h-11 p-0 rounded-xl flex items-center justify-center"><MessageCircle className="w-5 h-5" /></Button>
+                                    <Button variant="secondary" onClick={() => setChatTask(task)} className="w-11 h-11 p-0 rounded-xl flex items-center justify-center border-slate-300 dark:border-slate-600"><MessageCircle className="w-5 h-5 text-slate-600 dark:text-slate-300" /></Button>
                                     {task.status === 'taken' ? (
                                        <Button onClick={() => setSubmitTaskModal(task)} className="bg-blue-600 text-white shadow-blue-500/30 px-5 h-11 rounded-xl">
                                           <Send className="w-4 h-4 mr-2" /> Submit
                                        </Button>
                                     ) : (
-                                       <div className="px-4 py-2 bg-orange-50 text-orange-600 border border-orange-100 rounded-xl text-xs font-bold flex items-center">
+                                       <div className="px-4 py-2 bg-orange-50 text-orange-700 border border-orange-200 rounded-xl text-xs font-bold flex items-center">
                                           <Clock className="w-3 h-3 mr-1" /> Menunggu Review
                                        </div>
                                     )}
@@ -242,7 +242,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                               )}
 
                               {activeTab === 'history' && (
-                                 <div className="px-4 py-2 bg-green-50 text-green-600 border border-green-100 rounded-xl text-xs font-bold flex items-center gap-2">
+                                 <div className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold flex items-center gap-2">
                                     <CheckCircle2 className="w-4 h-4" /> Pembayaran Diterima
                                  </div>
                               )}
@@ -256,7 +256,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
       </div>
 
       {/* --- MOBILE NAV (Dock Style) --- */}
-      <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/20 dark:border-slate-700 shadow-2xl rounded-3xl p-2 flex justify-between items-center px-6">
+      <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-white/20 dark:border-slate-700 shadow-2xl rounded-3xl p-2 flex justify-between items-center px-6">
           <button onClick={() => setActiveTab('market')} className={`flex flex-col items-center gap-1 ${activeTab === 'market' ? 'text-sky-600' : 'text-slate-400'}`}>
              <div className={`p-2 rounded-xl transition-all ${activeTab === 'market' ? 'bg-sky-50' : ''}`}><Home className="w-6 h-6" /></div>
           </button>
@@ -289,7 +289,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
           
           <div className="relative">
              <Lock className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
-             <Input type="password" className="pl-12 h-12 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white transition-all" placeholder="Masukkan Kode PIN" value={parentalCodeInput} onChange={e => setParentalCodeInput(e.target.value)} required />
+             <Input type="password" className="pl-12 h-12 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white transition-all text-slate-900" placeholder="Masukkan Kode PIN" value={parentalCodeInput} onChange={e => setParentalCodeInput(e.target.value)} required />
           </div>
           
           {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold text-center border border-red-100">{error}</div>}
@@ -308,13 +308,13 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block ml-1">Link File / Dokumen</label>
                <div className="relative">
                   <LinkIcon className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
-                  <Input className="pl-12 h-12 rounded-2xl bg-slate-50 border-slate-200" placeholder="https://drive.google.com/..." value={submissionData.url} onChange={e => setSubmissionData({...submissionData, url: e.target.value})} required />
+                  <Input className="pl-12 h-12 rounded-2xl bg-slate-50 border-slate-200 text-slate-900" placeholder="https://drive.google.com/..." value={submissionData.url} onChange={e => setSubmissionData({...submissionData, url: e.target.value})} required />
                </div>
             </div>
             <div>
                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block ml-1">Catatan Tambahan</label>
                <textarea 
-                  className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none text-sm focus:ring-2 focus:ring-sky-500/20 transition-all" 
+                  className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none text-sm focus:ring-2 focus:ring-sky-500/20 transition-all text-slate-900 placeholder:text-slate-400" 
                   rows={4}
                   placeholder="Ceritakan sedikit tentang hasil kerjamu..." 
                   value={submissionData.note} 
