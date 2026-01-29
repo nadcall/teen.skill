@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { createTaskAction, getMyTasksAction, completePaymentAction, checkTaskSafetyAction } from '@/app/actions';
+import { createTaskAction, getMyTasksAction, completePaymentAction } from '@/app/actions';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
 import { XenditPaymentModal } from '@/components/XenditPaymentModal';
-import { Plus, List, AlertTriangle, CheckCircle, Wallet } from 'lucide-react';
+import { Plus, List, CheckCircle, Wallet } from 'lucide-react';
 
 interface ClientDashboardProps {
   user: any;
@@ -15,7 +15,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', budget: '' });
-  const [safetyError, setSafetyError] = useState<string | null>(null);
 
   // State for Payment
   const [paymentTask, setPaymentTask] = useState<any | null>(null);
@@ -33,16 +32,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
   const handlePostTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setSafetyError(null);
-
-    // 1. AI Safety Check (Server Action)
-    const safetyCheck = await checkTaskSafetyAction(newTask.title, newTask.description);
-    
-    if (!safetyCheck.safe) {
-      setSafetyError(`Peringatan Keamanan: ${safetyCheck.reason}`);
-      setIsLoading(false);
-      return;
-    }
 
     try {
       await createTaskAction(newTask.title, newTask.description, Number(newTask.budget));
@@ -152,16 +141,6 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
             onChange={e => setNewTask({...newTask, budget: e.target.value})} 
             required
           />
-          
-          {safetyError && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-red-800 dark:text-red-300">Pemeriksaan Keamanan Gagal</p>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{safetyError}</p>
-              </div>
-            </div>
-          )}
 
           <div className="pt-2 flex justify-end gap-3">
             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>

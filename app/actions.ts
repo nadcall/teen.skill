@@ -5,35 +5,7 @@ import { users, tasks } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
-import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
-
-// --- Gemini AI ---
-// Initialize GoogleGenAI with API key from environment variables
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
-export async function checkTaskSafetyAction(title: string, description: string) {
-  if (!process.env.API_KEY) return { safe: true, reason: "Dev mode" };
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `
-        Analisis deskripsi tugas freelance untuk remaja (13-17 thn).
-        Judul: ${title}
-        Deskripsi: ${description}
-        Risiko: Bahaya fisik, pertemuan offline privat, konten dewasa, penipuan.
-        JSON: { "safe": boolean, "reason": "string indonesia" }
-      `,
-      config: { responseMimeType: 'application/json' }
-    });
-    
-    // Handle response structure correctly as per SDK instructions
-    return JSON.parse(response.text || '{"safe":true, "reason": "Error parsing AI"}');
-  } catch (e) {
-    return { safe: true, reason: "AI Service Unavailable" };
-  }
-}
 
 // --- User Actions ---
 
