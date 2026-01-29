@@ -204,13 +204,14 @@ export async function createTaskAction(title: string, description: string, budge
   const user = await syncUser();
   if (!user || user.role !== 'client') throw new Error("Unauthorized");
 
+  // FIX: Menghapus 'status' dari sini karena di schema sudah .default("open")
+  // Drizzle akan otomatis mengisinya.
   await db.insert(tasks).values({
     id: uuidv4(),
     title,
     description,
     budget,
-    clientId: user.id,
-    status: 'open'
+    clientId: user.id
   });
   return { success: true };
 }
