@@ -14,11 +14,19 @@ try {
   if (!url) {
     throw new Error("TURSO_DATABASE_URL tidak ditemukan di .env.local");
   }
+
+  // --- AUTO FIX PROTOKOL ---
+  // Error 400 sering terjadi karena library @libsql/client di lingkungan serverless
+  // lebih stabil menggunakan protokol HTTPS daripada LIBSQL.
+  // Kita ubah otomatis tanpa perlu ganti .env
+  let connectionUrl = url;
+  if (url.startsWith("libsql://")) {
+    connectionUrl = url.replace("libsql://", "https://");
+  }
   
   // Mencoba inisialisasi client
-  // Jika URL tidak valid (misal kosong atau salah format), ini akan throw error
   client = createClient({
-    url,
+    url: connectionUrl,
     authToken,
   });
 } catch (error: any) {
@@ -29,7 +37,6 @@ try {
   isFallback = true;
 
   // Fallback ke in-memory agar aplikasi tetap jalan (walau data kosong)
-  // Ini mencegah "Server Component Render Error" (White Screen of Death)
   client = createClient({
     url: ":memory:",
   });
