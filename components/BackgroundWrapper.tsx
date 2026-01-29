@@ -1,76 +1,81 @@
 
 import React from 'react';
 
+// Komponen Kubus 3D Kecil
+const FloatingCube = ({ size, left, delay, duration, colorClass }: any) => {
+  return (
+    <div 
+      className="absolute preserve-3d"
+      style={{
+        left: left,
+        width: size,
+        height: size,
+        bottom: '-20%', // Mulai dari bawah layar
+        animation: `float-rotate ${duration}s linear infinite`,
+        animationDelay: delay,
+      }}
+    >
+      {/* 6 Sisi Kubus */}
+      {['rotateX(0deg)', 'rotateX(180deg)', 'rotateY(90deg)', 'rotateY(-90deg)', 'rotateX(90deg)', 'rotateX(-90deg)'].map((transform, i) => (
+        <div
+          key={i}
+          className={`absolute inset-0 border border-white/30 dark:border-white/10 ${colorClass} backdrop-blur-[1px] opacity-40`}
+          style={{
+            transform: `${transform} translateZ(${parseInt(size)/2}px)`,
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 export const BackgroundWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#F8FAFC] dark:bg-[#0B1120] transition-colors duration-500 perspective-1000">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#F8FAFC] dark:bg-[#0B1120] transition-colors duration-500 perspective-[1000px]">
       
       {/* 3D Animated Background Layer */}
       <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none overflow-hidden">
         
         {/* Base Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-indigo-50/50 dark:from-slate-900 dark:to-[#0B1120]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-sky-50 dark:from-[#0B1120] dark:via-[#0F172A] dark:to-[#1E293B]" />
 
-        {/* 3D Orbs (Existing) */}
-        <div className="absolute top-[-5%] left-[-5%] w-[500px] h-[500px] rounded-full animate-float-slow opacity-90 dark:opacity-20"
-             style={{
-               background: 'radial-gradient(circle at 30% 30%, #BAE6FD, #38BDF8, #0284C7)',
-               boxShadow: 'inset 10px 10px 40px rgba(255,255,255,0.8), 0 20px 60px rgba(14, 165, 233, 0.3)'
-             }}>
-        </div>
-
-        <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] rounded-full animate-float-medium opacity-90 dark:opacity-20"
-             style={{
-               background: 'radial-gradient(circle at 30% 30%, #E9D5FF, #A855F7, #7E22CE)',
-               boxShadow: 'inset 10px 10px 40px rgba(255,255,255,0.8), 0 20px 60px rgba(147, 51, 234, 0.3)'
-             }}>
-        </div>
-
-        <div className="absolute bottom-[-10%] left-[20%] w-[350px] h-[350px] rounded-full animate-float-fast opacity-80 dark:opacity-20"
-             style={{
-               background: 'radial-gradient(circle at 30% 30%, #FBCFE8, #F472B6, #DB2777)',
-               boxShadow: 'inset 5px 5px 30px rgba(255,255,255,0.9), 0 15px 40px rgba(219, 39, 119, 0.25)'
-             }}>
-        </div>
+        {/* Existing Orbs (Tetap ada sebagai ambient light) */}
+        <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full animate-float-slow opacity-60 dark:opacity-10 blur-[80px]"
+             style={{ background: 'radial-gradient(circle, #38BDF8 0%, transparent 70%)' }} />
         
-        {/* FALLING PARTICLES ANIMATION */}
-        {/* Membuat beberapa partikel dengan delay dan posisi acak */}
-        {[...Array(15)].map((_, i) => (
-          <div 
-            key={i}
-            className="absolute rounded-full bg-gradient-to-br from-white/80 to-sky-100/50 dark:from-white/10 dark:to-white/5 backdrop-blur-sm border border-white/20"
-            style={{
-              width: `${Math.random() * 20 + 10}px`,
-              height: `${Math.random() * 20 + 10}px`,
-              left: `${Math.random() * 100}%`,
-              top: '-10%',
-              animationName: 'fall',
-              animationDuration: `${Math.random() * 10 + 10}s`, // 10-20s duration
-              animationDelay: `${Math.random() * 10}s`,
-              animationIterationCount: 'infinite',
-              animationTimingFunction: 'linear',
-              opacity: 0.6
-            }}
-          />
-        ))}
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full animate-float-medium opacity-60 dark:opacity-10 blur-[80px]"
+             style={{ background: 'radial-gradient(circle, #818CF8 0%, transparent 70%)' }} />
+
+        {/* --- 3D FLOATING CUBES --- */}
+        {/* Kubus-kubus ini akan melayang dari bawah ke atas sambil berputar */}
+        <FloatingCube size="60px" left="10%" delay="0s" duration="20" colorClass="bg-sky-500/10" />
+        <FloatingCube size="40px" left="25%" delay="5s" duration="25" colorClass="bg-purple-500/10" />
+        <FloatingCube size="80px" left="50%" delay="2s" duration="30" colorClass="bg-indigo-500/10" />
+        <FloatingCube size="50px" left="75%" delay="8s" duration="22" colorClass="bg-blue-500/10" />
+        <FloatingCube size="30px" left="90%" delay="12s" duration="18" colorClass="bg-sky-500/10" />
+        <FloatingCube size="45px" left="15%" delay="15s" duration="28" colorClass="bg-purple-500/10" />
 
       </div>
       
-      {/* CSS for Falling Animation */}
+      {/* CSS untuk Animasi 3D */}
       <style>{`
-        @keyframes fall {
+        .preserve-3d {
+          transform-style: preserve-3d;
+        }
+        @keyframes float-rotate {
           0% {
-            transform: translateY(0) rotate(0deg) translateX(0);
+            transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
             opacity: 0;
           }
           10% {
-            opacity: 0.8;
+            opacity: 1;
           }
-          50% {
-            transform: translateY(50vh) rotate(180deg) translateX(20px);
+          90% {
+            opacity: 1;
           }
           100% {
-            transform: translateY(110vh) rotate(360deg) translateX(-20px);
+            transform: translateY(-120vh) rotateX(360deg) rotateY(360deg) rotateZ(180deg);
             opacity: 0;
           }
         }
