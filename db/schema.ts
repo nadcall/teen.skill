@@ -21,7 +21,7 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
-  deadline: text("deadline"), // Kolom optional
+  deadline: text("deadline"), // Kolom optional untuk tenggang waktu
   status: text("status").notNull().default("open"), 
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
