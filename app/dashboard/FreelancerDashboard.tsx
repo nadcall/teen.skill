@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { getOpenTasksAction, getMyTasksAction, takeTaskAction, submitTaskAction, syncUser } from '@/app/actions';
+import { getOpenTasksAction, getMyTasksAction, takeTaskAction, submitTaskAction, syncUser, getWeeklyTaskCountAction, updatePaymentDetailsAction } from '@/app/actions';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
@@ -8,8 +8,8 @@ import { ChatWindow } from '@/components/ChatWindow';
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useTheme } from '@/context/ThemeContext';
 import { 
-  Briefcase, Lock, Search, Smile, Star, MessageCircle, 
-  Home, Clock, Award, Sun, Moon, CheckCircle2, TrendingUp, Wallet, Send, Link as LinkIcon, Zap, Calendar
+  Briefcase, Lock, Search, Smile, Star, MessageCircle, CreditCard,
+  Home, Clock, Award, Sun, Moon, CheckCircle2, TrendingUp, Wallet, Send, Link as LinkIcon, Zap, Calendar, AlertCircle
 } from 'lucide-react';
 
 interface FreelancerDashboardProps {
@@ -29,11 +29,19 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
   const [activeTab, setActiveTab] = useState<'market' | 'active' | 'history'>('market');
   const [tasks, setTasks] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState(initialUser);
+  const [weeklyCount, setWeeklyCount] = useState(0);
   
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [submitTaskModal, setSubmitTaskModal] = useState<any | null>(null);
   const [chatTask, setChatTask] = useState<any | null>(null);
   
+  // Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    method: initialUser.paymentMethod || 'BCA',
+    number: initialUser.paymentNumber || ''
+  });
+
   const [parentalCodeInput, setParentalCodeInput] = useState('');
   const [submissionData, setSubmissionData] = useState({ url: '', note: '' });
   
@@ -42,11 +50,20 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
 
   const level = Math.floor((currentUser.xp || 0) / 100) + 1;
   const progressToNextLevel = (currentUser.xp % 100);
+  const maxQuota = currentUser.taskQuota || 5;
 
   const fetchTasks = async () => {
     setLoading(true);
     const freshUser = await syncUser();
-    if(freshUser) setCurrentUser(freshUser);
+    if(freshUser) {
+        setCurrentUser(freshUser);
+        setPaymentForm({
+            method: freshUser.paymentMethod || 'BCA',
+            number: freshUser.paymentNumber || ''
+        });
+        const count = await getWeeklyTaskCountAction(freshUser.id);
+        setWeeklyCount(count);
+    }
 
     if (activeTab === 'market') {
       setTasks(await getOpenTasksAction());
@@ -62,6 +79,29 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
   };
 
   useEffect(() => { fetchTasks(); }, [activeTab]);
+
+  const handleUpdatePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+        await updatePaymentDetailsAction(paymentForm.method, paymentForm.number);
+        setShowPaymentModal(false);
+        fetchTasks();
+    } catch(e) {
+        console.error(e);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const initTakeTask = (task: any) => {
+      // Validasi: Wajib punya rekening dulu
+      if (!currentUser.paymentMethod || !currentUser.paymentNumber) {
+          setShowPaymentModal(true);
+          return;
+      }
+      setSelectedTask(task);
+  };
 
   const handleTakeTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +126,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
   return (
     <div className="pt-32 pb-24 px-4 min-h-screen w-full max-w-[1600px] mx-auto">
       
-      {/* DESKTOP NAV (Floating) */}
+      {/* DESKTOP NAV */}
       <nav className="hidden md:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-white/95 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/50 dark:border-slate-700 shadow-2xl shadow-indigo-500/10 rounded-full px-6 py-2 items-center gap-2 animate-fade-in-up transition-all hover:scale-105">
          <div className="w-10 h-10 bg-gradient-to-tr from-sky-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold mr-4 shadow-lg shadow-sky-500/30">
             TS
@@ -108,8 +148,9 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
       {/* BENTO GRID LAYOUT */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fade-in-up">
         
-        {/* LEFT COLUMN: PROFILE & STATS (Span 3 or 4) */}
+        {/* LEFT COLUMN: PROFILE & STATS */}
         <div className="md:col-span-4 lg:col-span-3 space-y-6">
+           
            {/* Profile Card */}
            <BentoCard className="relative overflow-hidden group border-none bg-white dark:bg-slate-900 shadow-xl">
               <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-sky-400 to-indigo-500 opacity-20" />
@@ -128,20 +169,19 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                     <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden border border-slate-300 dark:border-slate-600">
                        <div className="bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 h-full rounded-full transition-all duration-1000" style={{ width: `${progressToNextLevel}%` }} />
                     </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-1 text-right">{100 - progressToNextLevel} XP to Level {level + 1}</p>
                  </div>
               </div>
            </BentoCard>
 
-           {/* Stats Grid - FIXED CONTRAST (Using div instead of BentoCard to enforce color) */}
+           {/* Stats Grid */}
            <div className="grid grid-cols-2 gap-4">
               <div className="p-5 flex flex-col justify-between bg-emerald-500 text-white rounded-[2rem] shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
                  <div className="bg-white/20 w-10 h-10 rounded-2xl flex items-center justify-center mb-2 backdrop-blur-md">
                      <Wallet className="w-5 h-5 text-white" />
                  </div>
                  <div>
-                    <p className="text-xs font-bold text-emerald-100 mb-1 opacity-90">Saldo Kamu</p>
-                    <p className="text-lg font-extrabold truncate tracking-tight">{formatRupiah(currentUser.balance)}</p>
+                    <p className="text-xs font-bold text-emerald-100 mb-1 opacity-90">Saldo</p>
+                    <p className="text-sm font-extrabold truncate tracking-tight">{formatRupiah(currentUser.balance)}</p>
                  </div>
               </div>
               <div className="p-5 flex flex-col justify-between bg-amber-500 text-white rounded-[2rem] shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
@@ -149,27 +189,56 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                      <Award className="w-5 h-5 text-white" />
                  </div>
                  <div>
-                    <p className="text-xs font-bold text-amber-100 mb-1 opacity-90">Total Tugas</p>
+                    <p className="text-xs font-bold text-amber-100 mb-1 opacity-90">Selesai</p>
                     <p className="text-lg font-extrabold tracking-tight">
-                        {tasks.filter(t => t.status === 'completed').length || 0} <span className="text-xs font-normal opacity-90">Selesai</span>
+                        {tasks.filter(t => t.status === 'completed').length || 0}
                     </p>
                  </div>
               </div>
            </div>
 
-           {/* Daily Quota */}
+           {/* Payment Details Card - NEW */}
+           <BentoCard className="bg-white dark:bg-slate-900 group cursor-pointer hover:border-sky-500" onClick={() => setShowPaymentModal(true)}>
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <CreditCard className="w-5 h-5 text-sky-500" /> Akun Bank
+                    </h3>
+                    <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-slate-500 group-hover:bg-sky-50 group-hover:text-sky-600 transition-colors">Edit</span>
+                </div>
+                {currentUser.paymentNumber ? (
+                    <div>
+                        <p className="text-xs text-slate-500 font-bold uppercase">{currentUser.paymentMethod}</p>
+                        <p className="text-lg font-mono font-bold text-slate-800 dark:text-slate-200 tracking-wider">
+                            {currentUser.paymentNumber}
+                        </p>
+                        <p className="text-[10px] text-green-600 mt-1 flex items-center gap-1 font-bold"><CheckCircle2 className="w-3 h-3" /> Terverifikasi</p>
+                    </div>
+                ) : (
+                    <div className="text-center py-2">
+                        <p className="text-xs text-red-500 font-bold mb-2">Belum diatur!</p>
+                        <Button className="w-full h-8 text-xs bg-sky-500 text-white" onClick={(e) => { e.stopPropagation(); setShowPaymentModal(true); }}>Atur Sekarang</Button>
+                    </div>
+                )}
+           </BentoCard>
+
+           {/* Weekly Quota Card - UPDATED */}
            <BentoCard className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none relative overflow-hidden">
                <Zap className="absolute -bottom-4 -right-4 w-24 h-24 text-white opacity-10 rotate-12" />
-               <h3 className="font-bold text-lg mb-1">Quota Harian</h3>
-               <p className="text-indigo-100 text-sm mb-4 font-medium">Sisa kesempatan ambil tugas hari ini.</p>
+               <h3 className="font-bold text-lg mb-1">Kuota Mingguan</h3>
+               <p className="text-indigo-100 text-xs mb-4 font-medium opacity-80">
+                   Jatah ambil tugasmu reset setiap 7 hari.
+               </p>
                <div className="flex items-end gap-1">
-                  <span className="text-4xl font-black">{currentUser.taskQuotaDaily}</span>
-                  <span className="text-sm mb-1 opacity-80 font-bold">/ 1 Tugas</span>
+                  <span className="text-4xl font-black">{maxQuota - weeklyCount}</span>
+                  <span className="text-sm mb-1 opacity-80 font-bold">/ {maxQuota} Tersisa</span>
+               </div>
+               <div className="w-full bg-black/20 h-1.5 mt-3 rounded-full overflow-hidden">
+                   <div className="bg-white h-full rounded-full transition-all" style={{ width: `${(weeklyCount / maxQuota) * 100}%` }} />
                </div>
            </BentoCard>
         </div>
 
-        {/* RIGHT COLUMN: MAIN FEED (Span 8 or 9) */}
+        {/* RIGHT COLUMN: MAIN FEED */}
         <div className="md:col-span-8 lg:col-span-9">
            <div className="flex items-center justify-between mb-8">
               <div>
@@ -195,8 +264,6 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
               ) : (
                  tasks.map(task => (
                     <BentoCard key={task.id} className="group relative flex flex-col justify-between min-h-[220px] border-l-[6px] border-l-transparent hover:border-l-sky-500 overflow-hidden">
-                       
-                       {/* Background decoration */}
                        <div className="absolute top-0 right-0 w-32 h-32 bg-sky-50 dark:bg-sky-900/10 rounded-bl-[4rem] -z-10 transition-transform group-hover:scale-150 duration-500" />
 
                        <div>
@@ -214,7 +281,6 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                                 )}
                              </div>
                           </div>
-                          
                           <h3 className="font-extrabold text-xl mb-3 text-slate-900 dark:text-white leading-tight group-hover:text-sky-600 transition-colors">{task.title}</h3>
                           <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed mb-6 font-medium">{task.description}</p>
                        </div>
@@ -226,17 +292,21 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                           
                           <div className="flex gap-2">
                               {activeTab === 'market' && (
-                                 <Button onClick={() => setSelectedTask(task)} className="bg-slate-900 text-white shadow-xl shadow-slate-900/20 px-6 h-11 rounded-xl hover:scale-105">
+                                 <Button onClick={() => initTakeTask(task)} className="bg-slate-900 text-white shadow-xl shadow-slate-900/20 px-6 h-11 rounded-xl hover:scale-105">
                                     Ambil Tugas
                                  </Button>
                               )}
                               
                               {activeTab === 'active' && (
                                  <>
-                                    <Button variant="secondary" onClick={() => setChatTask(task)} className="w-11 h-11 p-0 rounded-xl flex items-center justify-center border-slate-300 dark:border-slate-600">
-                                       {/* FIX: Set Icon color explicitly */}
-                                       <MessageCircle className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                                    <Button 
+                                      onClick={() => setChatTask(task)} 
+                                      className="w-11 h-11 p-0 rounded-xl flex items-center justify-center bg-violet-100 hover:bg-violet-200 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800 shadow-sm transition-colors"
+                                      title="Chat dengan Klien"
+                                    >
+                                       <MessageCircle className="w-6 h-6" strokeWidth={2.5} />
                                     </Button>
+
                                     {task.status === 'taken' ? (
                                        <Button onClick={() => setSubmitTaskModal(task)} className="bg-blue-600 text-white shadow-blue-500/30 px-5 h-11 rounded-xl">
                                           <Send className="w-4 h-4 mr-2" /> Submit
@@ -248,12 +318,6 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
                                     )}
                                  </>
                               )}
-
-                              {activeTab === 'history' && (
-                                 <div className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-bold flex items-center gap-2">
-                                    <CheckCircle2 className="w-4 h-4" /> Pembayaran Diterima
-                                 </div>
-                              )}
                           </div>
                        </div>
                     </BentoCard>
@@ -263,7 +327,7 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
         </div>
       </div>
 
-      {/* --- MOBILE NAV (Dock Style) --- */}
+      {/* --- MOBILE NAV --- */}
       <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-white/20 dark:border-slate-700 shadow-2xl rounded-3xl p-2 flex justify-between items-center px-6">
           <button onClick={() => setActiveTab('market')} className={`flex flex-col items-center gap-1 ${activeTab === 'market' ? 'text-sky-600' : 'text-slate-400'}`}>
              <div className={`p-2 rounded-xl transition-all ${activeTab === 'market' ? 'bg-sky-50' : ''}`}><Home className="w-6 h-6" /></div>
@@ -283,6 +347,47 @@ export const FreelancerDashboard: React.FC<FreelancerDashboardProps> = ({ user: 
              <div className="p-2"><Sun className="w-6 h-6" /></div>
           </button>
       </div>
+
+      {/* MODAL: UPDATE PAYMENT */}
+      <Modal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} title="Detail Pembayaran">
+         <form onSubmit={handleUpdatePayment} className="space-y-4">
+             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800 flex gap-3">
+                 <AlertCircle className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                 <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                     Masukkan rekening atau e-wallet tempat kamu ingin menerima pembayaran. Ini wajib diisi agar klien bisa membayar.
+                 </p>
+             </div>
+             
+             <div>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-2 block ml-1">Metode (Bank / E-Wallet)</label>
+                <select 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white"
+                    value={paymentForm.method}
+                    onChange={(e) => setPaymentForm({...paymentForm, method: e.target.value})}
+                >
+                    <option value="BCA">Bank BCA</option>
+                    <option value="MANDIRI">Bank Mandiri</option>
+                    <option value="BRI">Bank BRI</option>
+                    <option value="BNI">Bank BNI</option>
+                    <option value="GOPAY">GoPay</option>
+                    <option value="OVO">OVO</option>
+                    <option value="DANA">DANA</option>
+                    <option value="SHOPEEPAY">ShopeePay</option>
+                </select>
+             </div>
+
+             <Input 
+                label="Nomor Rekening / HP" 
+                placeholder="Contoh: 1234567890" 
+                value={paymentForm.number} 
+                onChange={e => setPaymentForm({...paymentForm, number: e.target.value})} 
+                required
+                className="text-slate-900"
+             />
+
+             <Button type="submit" isLoading={loading} className="w-full bg-slate-900 text-white mt-4">Simpan Detail</Button>
+         </form>
+      </Modal>
 
       {/* MODAL: TAKE TASK */}
       <Modal isOpen={!!selectedTask} onClose={() => { setSelectedTask(null); setError(''); }} title="Verifikasi Izin Orang Tua">

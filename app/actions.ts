@@ -3,7 +3,7 @@
 
 import { db, dbStatus } from '@/lib/db';
 import { users, tasks, messages } from '@/db/schema';
-import { eq, desc, asc, sql, and } from 'drizzle-orm';
+import { eq, desc, asc, sql, and, gte } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenAI } from "@google/genai";
 import { v4 as uuidv4 } from 'uuid';
@@ -116,10 +116,17 @@ export async function initializeSystemAction() {
         parental_code TEXT,
         balance INTEGER DEFAULT 0 NOT NULL,
         xp INTEGER DEFAULT 0 NOT NULL,
-        task_quota_daily INTEGER DEFAULT 1 NOT NULL,
+        task_quota INTEGER DEFAULT 5 NOT NULL,
+        payment_method TEXT,
+        payment_number TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    // Migration checks for user table updates
+    try { await db.run(sql`ALTER TABLE users ADD COLUMN task_quota INTEGER DEFAULT 5`); } catch (e) {}
+    try { await db.run(sql`ALTER TABLE users ADD COLUMN payment_method TEXT`); } catch (e) {}
+    try { await db.run(sql`ALTER TABLE users ADD COLUMN payment_number TEXT`); } catch (e) {}
 
     // Tasks Table with Migration Checks for new columns
     try { await db.run(sql`ALTER TABLE tasks ADD COLUMN submission_url TEXT`); } catch (e) {}
@@ -204,7 +211,9 @@ export async function registerUserAction(formData: any) {
       parentalCode: formData.parentalCode || null,
       balance: 0,
       xp: 0,
-      taskQuotaDaily: 1,
+      taskQuota: 5, // Default Weekly Quota
+      paymentMethod: null,
+      paymentNumber: null
     };
 
     await db.insert(users).values(newUser);
@@ -216,6 +225,17 @@ export async function registerUserAction(formData: any) {
   }
 }
 
+export async function updatePaymentDetailsAction(method: string, number: string) {
+  const user = await syncUser();
+  if (!user) throw new Error("Unauthorized");
+
+  await db.update(users)
+    .set({ paymentMethod: method, paymentNumber: number } as any)
+    .where(eq(users.id, user.id));
+    
+  return { success: true };
+}
+
 // --- Task Actions ---
 
 export async function createTaskAction(title: string, description: string, budget: number, deadline: string) {
@@ -224,8 +244,6 @@ export async function createTaskAction(title: string, description: string, budge
 
   const validDeadline = deadline && deadline.trim() !== '' ? deadline : null;
 
-  // Menggunakan 'as any' untuk bypass type check error saat build
-  // Ini aman karena kita tahu struktur database di schema.ts sudah benar
   await db.insert(tasks).values({
     id: uuidv4(),
     title,
@@ -277,10 +295,48 @@ export async function getMyTasksAction(userId: string, role: string) {
   }
 }
 
+export async function getWeeklyTaskCountAction(userId: string) {
+  // Hitung tugas yang diambil 7 hari terakhir
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const dateStr = sevenDaysAgo.toISOString();
+
+  try {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.freelancerId, userId),
+          gte(tasks.takenAt, dateStr)
+        )
+      )
+      .get();
+    
+    return result?.count || 0;
+  } catch (e) {
+    console.error(e);
+    return 0;
+  }
+}
+
 export async function takeTaskAction(taskId: string, parentalCodeInput: string) {
   const user = await syncUser();
   if (!user || user.role !== 'freelancer') throw new Error("Unauthorized");
 
+  // 1. Cek Rekening
+  if (!user.paymentMethod || !user.paymentNumber) {
+    throw new Error("Harap lengkapi detail pembayaran (Bank/E-Wallet) di profil sebelum mengambil tugas.");
+  }
+
+  // 2. Cek Kuota Mingguan
+  const weeklyCount = await getWeeklyTaskCountAction(user.id);
+  const maxQuota = user.taskQuota || 5;
+  
+  if (weeklyCount >= maxQuota) {
+    throw new Error(`Kuota mingguan habis (${maxQuota}/${maxQuota}). Tunggu minggu depan ya!`);
+  }
+
+  // 3. Cek Parental Code
   if (user.parentalCode !== parentalCodeInput) {
     throw new Error("Kode Orang Tua Salah!");
   }

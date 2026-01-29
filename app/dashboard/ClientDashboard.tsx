@@ -193,8 +193,12 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
 
                              {/* Chat Button */}
                              {(task.status !== 'open') && (
-                                <Button variant="secondary" onClick={() => setChatTask(task)} className="h-10 w-10 p-0 rounded-xl flex items-center justify-center border-slate-300">
-                                   <MessageCircle className="w-5 h-5 text-slate-700" />
+                                <Button 
+                                  variant="secondary" 
+                                  onClick={() => setChatTask(task)} 
+                                  className="h-10 w-10 p-0 rounded-xl flex items-center justify-center bg-violet-100 hover:bg-violet-200 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800"
+                                >
+                                   <MessageCircle className="w-5 h-5" strokeWidth={2.5} />
                                 </Button>
                              )}
 

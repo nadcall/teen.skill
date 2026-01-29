@@ -12,7 +12,11 @@ export const users = sqliteTable("users", {
   parentalCode: text("parental_code"),
   balance: integer("balance").default(0).notNull(),
   xp: integer("xp").default(0).notNull(),
-  taskQuotaDaily: integer("task_quota_daily").default(1).notNull(),
+  // Mengubah default menjadi 5 (untuk kuota mingguan)
+  taskQuota: integer("task_quota").default(5).notNull(), 
+  // Kolom baru untuk pembayaran
+  paymentMethod: text("payment_method"), // BCA, OVO, DANA, dll
+  paymentNumber: text("payment_number"), // Nomor Rekening / HP
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -21,7 +25,7 @@ export const tasks = sqliteTable("tasks", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   budget: integer("budget").notNull(),
-  deadline: text("deadline"), // Kolom optional untuk tenggang waktu
+  deadline: text("deadline"), 
   status: text("status").notNull().default("open"), 
   clientId: text("client_id").references(() => users.id).notNull(),
   freelancerId: text("freelancer_id").references(() => users.id),
